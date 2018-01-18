@@ -14,7 +14,10 @@ from collections import defaultdict
     use union-find algorithm to calculate the num of connected components of the beijing road network
 """
 
-datapath = "F:/"
+# Binbing
+# datapath = "F:/"
+# Jingqing
+datapath = "../../data/"
 pre_dict = defaultdict()
 
 
@@ -42,7 +45,7 @@ def roadnet_extraction():
             pre_dict[temp_arr[9]] = temp_arr[9]
         if temp_arr[10] not in pre_dict:
             pre_dict[temp_arr[10]] = temp_arr[10]
-    print "len(pred_dict) is {}".format(len(pre_dict))
+    print("len(pred_dict) is {}".format(len(pre_dict)))
 
     for line in open(roadnetfilename):
         temp_arr = line.replace("\"", "").split("\t")
@@ -54,7 +57,7 @@ def roadnet_extraction():
         if pre_dict[key] == key:
             num_connected_comp += 1
 
-    print "num_connected_comp is {}".format(num_connected_comp)
+    print("num_connected_comp is {}".format(num_connected_comp))
 
 
 if __name__ == "__main__":

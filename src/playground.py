@@ -5,8 +5,10 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import progressbar
+import networkx as nx
 
 datapath = "../../data/"
+resultspath = "../results/"
 
 class RoadNode():
     def __init__(self, id):
@@ -152,7 +154,7 @@ def roadnet_extraction():
                 '''
 
                 foundflag = False
-                for idx, dn in enumerate(deep_next(nid, 3)):
+                for idx, dn in enumerate(deep_next(nid, 8)):
                     if njd in dn:
                         clink.append((nid, njd, idx))
                         foundflag = True
@@ -161,7 +163,7 @@ def roadnet_extraction():
                 if foundflag:
                     continue
 
-                for idx, dn in enumerate(deep_previous(njd, 3)):
+                for idx, dn in enumerate(deep_previous(njd, 8)):
                     if nid in dn:
                         clink.append((nid, njd, idx))
                         foundflag = True
@@ -190,13 +192,36 @@ def roadnet_extraction():
     eventsetfile.close()
 
     print("Saving ... ")
-    resultfilename = "event_link_set_beijing_link.txt"
+    resultfilename = resultspath + "event_link_set_beijing_link.txt"
     resultfile = open(resultfilename, "w")
     for link in linklist:
         resultfile.write(str(link))
         resultfile.write("\n")
     resultfile.close()
 
+def draw_roadnet():
+    roadnetfilename = resultspath + "event_link_set_beijing_link.txt"
+    roadnetfile = open(roadnetfilename, "r")
+
+    bar = progressbar.ProgressBar(max_value=1151)
+    for iter, line in enumerate(roadnetfile):
+        bar.update(iter)
+
+        content = eval(line)
+
+        graph = nx.Graph()
+        for link in content:
+            if link[2] == 1:
+                graph.add_nodes_from(link[:-1])
+                graph.add_edge(link[0], link[1])
+        # nx.draw(graph, options)
+        nx.draw(graph, node_size=50)
+        plt.savefig(resultspath + "figs/roadnet_%d.png" % iter)
+        plt.clf()
+
+    roadnetfile.close()
+
 
 if __name__ == "__main__":
-    roadnet_extraction()
+    # roadnet_extraction()
+    draw_roadnet()

@@ -1,0 +1,20 @@
+Epoch 1/10
+12297/12297 [==============================] - 171s - loss: 629.0811 - mean_squared_error: 629.0810 - mean_absolute_error: 22.2643 - val_loss: 544.8160 - val_mean_squared_error: 544.8159 - val_mean_absolute_error: 17.8136
+Epoch 2/10
+12297/12297 [==============================] - 167s - loss: 456.7310 - mean_squared_error: 456.7310 - mean_absolute_error: 15.8577 - val_loss: 387.9927 - val_mean_squared_error: 387.9927 - val_mean_absolute_error: 14.5098
+Epoch 3/10
+12297/12297 [==============================] - 165s - loss: 280.3740 - mean_squared_error: 280.3740 - mean_absolute_error: 12.2582 - val_loss: 210.9108 - val_mean_squared_error: 210.9108 - val_mean_absolute_error: 10.6263
+Epoch 4/10
+12297/12297 [==============================] - 164s - loss: 148.0992 - mean_squared_error: 148.0992 - mean_absolute_error: 8.8038 - val_loss: 117.9845 - val_mean_squared_error: 117.9844 - val_mean_absolute_error: 8.0349
+Epoch 5/10
+12297/12297 [==============================] - 164s - loss: 90.1103 - mean_squared_error: 90.1103 - mean_absolute_error: 7.0953 - val_loss: 74.8222 - val_mean_squared_error: 74.8222 - val_mean_absolute_error: 6.5424
+Epoch 6/10
+12297/12297 [==============================] - 164s - loss: 65.8253 - mean_squared_error: 65.8253 - mean_absolute_error: 6.1126 - val_loss: 63.2738 - val_mean_squared_error: 63.2738 - val_mean_absolute_error: 5.9707
+Epoch 7/10
+12297/12297 [==============================] - 164s - loss: 62.3724 - mean_squared_error: 62.3724 - mean_absolute_error: 5.9436 - val_loss: 63.3286 - val_mean_squared_error: 63.3286 - val_mean_absolute_error: 5.9783
+Epoch 8/10
+12297/12297 [==============================] - 164s - loss: 62.3691 - mean_squared_error: 62.3691 - mean_absolute_error: 5.9434 - val_loss: 63.3384 - val_mean_squared_error: 63.3384 - val_mean_absolute_error: 5.9788
+Epoch 9/10
+12297/12297 [==============================] - 164s - loss: 62.3762 - mean_squared_error: 62.3762 - mean_absolute_error: 5.9438 - val_loss: 63.3446 - val_mean_squared_error: 63.3446 - val_mean_absolute_error: 5.9791
+Epoch 10/10
+12297/12297 [==============================] - 164s - loss: 62.3833 - mean_squared_error: 62.3833 - mean_absolute_error: 5.9442 - val_loss: 63.3512 - val_mean_squared_error: 63.3512 - val_mean_absolute_error: 5.9795

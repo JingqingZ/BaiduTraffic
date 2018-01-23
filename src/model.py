@@ -82,11 +82,31 @@ class Model():
             tf.slice(self.train_net.outputs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
             tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.seq_length, 1])
         )
+        self.mse_train_noend = tl.cost.mean_squared_error(
+            tf.slice(self.train_net.outputs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            is_mean=True
+        )
+        self.mae_train_noend = tl.cost.absolute_difference_error(
+            tf.slice(self.train_net.outputs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            is_mean=True
+        )
         # test loss
         self.nmse_test_loss = tl.cost.normalized_mean_square_error(self.test_net.outputs, self.target_seqs)
         self.nmse_test_noend = tl.cost.normalized_mean_square_error(
             tf.slice(self.test_net.outputs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
             tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.seq_length, 1])
+        )
+        self.mse_test_noend = tl.cost.mean_squared_error(
+            tf.slice(self.test_net.outputs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            is_mean=True
+        )
+        self.mae_test_noend = tl.cost.absolute_difference_error(
+            tf.slice(self.test_net.outputs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.seq_length, 1]),
+            is_mean=True
         )
         # adaptive train loss
         self.train_loss = self.nmse_train_loss

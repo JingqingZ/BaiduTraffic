@@ -77,7 +77,7 @@ def roadnet_extraction():
 
     print("Getting links ...")
     # eventsetfilename = datapath + "event_link_set_beijing"
-    eventsetfilename = datapath + "event_link_set_beijing_1km"
+    eventsetfilename = datapath + "event_link_set_beijing"
     eventsetfile = open(eventsetfilename, "r")
     event_road = dict()
     linklist = list()
@@ -189,7 +189,7 @@ def roadnet_extraction():
     eventsetfile.close()
 
     print("Saving ... ")
-    resultfilename = resultspath + "event_link_set_beijing_link_1km.txt"
+    resultfilename = resultspath + "event_link_set_beijing_link.txt"
     resultfile = open(resultfilename, "w")
     for link in linklist:
         resultfile.write(str(link))
@@ -197,11 +197,11 @@ def roadnet_extraction():
     resultfile.close()
 
 def draw_roadnet():
-    roadnetfilename = resultspath + "event_link_set_beijing_link_1km.txt"
+    roadnetfilename = resultspath + "event_link_set_beijing_link.txt"
     roadnetfile = open(roadnetfilename, "r")
 
-    # prfilename = resultspath + "pagerank_1km.txt"
-    # prfile = open(prfilename, "w")
+    prfilename = resultspath + "pagerank.txt"
+    prfile = open(prfilename, "w")
     bar = progressbar.ProgressBar(max_value=1151)
     for iter, line in enumerate(roadnetfile):
         bar.update(iter)
@@ -238,9 +238,10 @@ def draw_roadnet():
         sortedlist = list()
         for node, value in sorted(prnodes.items(), key=operator.itemgetter(1), reverse=True):
             sortedlist.append((node, value))
-        # prfile.write(str(sortedlist))
-        # prfile.write("\n")
+        prfile.write(str(sortedlist))
+        prfile.write("\n")
 
+        '''
         selected_graph = nx.DiGraph()
         selected_nsize = list()
         for i in range(200):
@@ -263,19 +264,30 @@ def draw_roadnet():
         plt.show()
         # plt.savefig(resultspath + "figs/roadnet_set_1km/roadnet_%d.png" % iter)
         # plt.clf()
-        exit()
+        '''
 
     roadnetfile.close()
-    # prfile.close()
+    prfile.close()
 
 def get_data():
     import pickle
 
-    d = pickle.load(open(datapath + "event_traffic_completion_beijing_15min.pkl", "rb"), encoding='latin1')
-    print(d)
+    t = pickle.load(open(datapath + "event_traffic_completion_beijing_15min.pkl", "rb"), encoding='latin1')
+    d = pickle.load(open(datapath + "event_traffic_flag_beijing.pkl", "rb"), encoding='latin1')
+    num = 0
+    incom = 0
+    for key in d.keys():
+        num += 1 if d[key] else 0
+        if d[key] and key not in t:
+            print(key)
+        elif d[key] and key in t:
+            incom += 1
+    print(num, len(d))
+    print(incom)
+    print(len(t))
 
 
 if __name__ == "__main__":
     # roadnet_extraction()
-    # draw_roadnet()
-    get_data()
+    draw_roadnet()
+    # get_data()

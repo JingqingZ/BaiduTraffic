@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import progressbar
 import networkx as nx
 
+import config
 datapath = "../../data/"
 resultspath = "../results/"
 
@@ -200,8 +201,13 @@ def draw_roadnet():
     roadnetfilename = resultspath + "event_link_set_beijing_link.txt"
     roadnetfile = open(roadnetfilename, "r")
 
-    prfilename = resultspath + "pagerank.txt"
-    prfile = open(prfilename, "w")
+    import pickle
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min.pkl", "rb")
+    traffic_data = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    # prfilename = resultspath + "pagerank.txt"
+    # prfile = open(prfilename, "w")
     bar = progressbar.ProgressBar(max_value=1151)
     for iter, line in enumerate(roadnetfile):
         bar.update(iter)
@@ -212,6 +218,8 @@ def draw_roadnet():
         linkdict = dict()
         for link in content:
             if link[2] == 1:
+                if link[0] not in traffic_data or link[1] not in traffic_data:
+                    continue
                 graph.add_nodes_from(link[:-1])
                 graph.add_edge(link[0], link[1])
                 if link[0] not in linkdict:
@@ -222,6 +230,7 @@ def draw_roadnet():
         # prfile.write("\n")
 
         '''
+        
         nsize = list()
         for node in graph.nodes:
             nsize.append(prnodes[node])
@@ -230,16 +239,18 @@ def draw_roadnet():
         nsize = np.exp(nsize)
         nsize *= 600 / np.max(nsize)
         # nx.draw(graph, options)
-        nx.draw(graph, node_size=nsize)
-        # nx.draw(graph, node_size=20)
         '''
+        nx.draw(graph, node_size=20)
+        plt.show()
+        exit()
+        # nx.draw(graph, node_size=20)
 
         import operator
         sortedlist = list()
         for node, value in sorted(prnodes.items(), key=operator.itemgetter(1), reverse=True):
             sortedlist.append((node, value))
-        prfile.write(str(sortedlist))
-        prfile.write("\n")
+        # prfile.write(str(sortedlist))
+        # prfile.write("\n")
 
         '''
         selected_graph = nx.DiGraph()
@@ -267,7 +278,7 @@ def draw_roadnet():
         '''
 
     roadnetfile.close()
-    prfile.close()
+    # prfile.close()
 
 def get_data():
     import pickle

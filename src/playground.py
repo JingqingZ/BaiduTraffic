@@ -268,7 +268,14 @@ def draw_roadnet():
     roadnetfile.close()
     # prfile.close()
 
+def get_data():
+    import pickle
+
+    d = pickle.load(open(datapath + "event_traffic_completion_beijing_15min.pkl", "rb"), encoding='latin1')
+    print(d)
+
 
 if __name__ == "__main__":
     # roadnet_extraction()
-    draw_roadnet()
+    # draw_roadnet()
+    get_data()

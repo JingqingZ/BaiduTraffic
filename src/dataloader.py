@@ -105,7 +105,7 @@ def find_neighbours(predecessor=5, successors=5):
 
 def load_data(predecessor=5, successors=5):
     print("Loading data...")
-    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min.pkl", "rb")
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt.pkl", "rb")
     traffic_data = pickle.load(traffic_data_file, encoding='latin1')
     traffic_data_file.close()
 
@@ -145,7 +145,6 @@ def load_data(predecessor=5, successors=5):
 
     return rootdata, neigdata
 
-
 def get_minibatch(root_data, neighbour_data, order, num_seq):
     minibatch_x_root = list()
     minibatch_x_neighbour = list()
@@ -154,9 +153,9 @@ def get_minibatch(root_data, neighbour_data, order, num_seq):
     for o in order:
         seq_id = o // num_seq
         seq_loc = o % num_seq
-        minibatch_x_root.append(root_data[seq_id, seq_loc : seq_loc + config.seq_length, :])
-        minibatch_y_root.append(root_data[seq_id, seq_loc + config.seq_length : seq_loc + 2 * config.seq_length, :])
-        minibatch_x_neighbour.append(neighbour_data[seq_id, seq_loc : seq_loc + config.seq_length, :])
+        minibatch_x_root.append(root_data[seq_id, seq_loc : seq_loc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_x_neighbour.append(neighbour_data[seq_id, seq_loc : seq_loc + config.in_seq_length, :])
 
     minibatch_x_root = np.stack(minibatch_x_root)
     minibatch_y_root = np.stack(minibatch_y_root)
@@ -173,8 +172,51 @@ def get_minibatch(root_data, neighbour_data, order, num_seq):
 
     return minibatch_x_root, minibatch_x_neighbour, minibatch_decode_seq, minibatch_target_seq
 
+def load_data_all():
+    print("Loading data...")
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt.pkl", "rb")
+    traffic_data = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    alldata = list()
+    for node in traffic_data:
+        alldata.append(traffic_data[node])
+    alldata = np.stack(alldata)
+    alldata = np.expand_dims(alldata, axis=-1)
+
+    print("Data Loaded: all ", alldata.shape)
+    return alldata
+
+def get_minibatch_all(root_data, order, num_seq):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+
+    for o in order:
+        seq_id = o // num_seq
+        seq_loc = o % num_seq
+        minibatch_x_root.append(root_data[seq_id, seq_loc : seq_loc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length, :])
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+
+    return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq
 
 if __name__ == "__main__":
     # find_neighbours(3, 3)
-    r, n = load_data(3, 3)
-    get_minibatch(r, n, order=[0,1], num_seq=r.shape[1] - 2 * config.seq_length + 1)
+    # r, n = load_data(3, 3)
+    # get_minibatch(r, n, order=[0,1], num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
+    r = load_data_all()
+    import time
+    st = time.time()
+    get_minibatch_all(r, order=list(range(config.batch_size)), num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
+    print(time.time() - st)

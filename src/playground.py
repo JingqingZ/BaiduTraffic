@@ -6,8 +6,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import progressbar
 import networkx as nx
+import pickle
 
 import config
+import dataloader
+
 datapath = "../../data/"
 resultspath = "../results/"
 
@@ -298,7 +301,32 @@ def get_data():
     print(len(t))
 
 
+def draw_sequence():
+    root_data, neighbour_data = dataloader.load_data(3, 3)
+    plt.plot(root_data[0, :96*7, 0])
+    plt.show()
+
+def filt_error():
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt.pkl", "rb")
+    traffic_data_filt = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min.pkl", "rb")
+    traffic_data = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    sum_error = np.zeros(2)
+    for key in traffic_data:
+        mae = np.mean(np.abs(traffic_data[key] - traffic_data_filt[key]))
+        mse = np.mean((traffic_data[key] - traffic_data_filt[key])**2)
+        sum_error[0] += mae
+        sum_error[1] += mse
+    sum_error /= len(traffic_data.keys())
+    print(sum_error)
+
 if __name__ == "__main__":
     # roadnet_extraction()
-    draw_roadnet()
+    # draw_roadnet()
     # get_data()
+    # draw_sequence()
+    filt_error()

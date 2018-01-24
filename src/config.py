@@ -1,8 +1,11 @@
 
 batch_size      = 128
-seq_length      = 8
+in_seq_length   = 4 * 24
+out_seq_length  = 4 * 2
 num_neighbour   = 6
-dim_hidden      = 128
+dim_hidden      = 512
+
+valid_length    = 1000
 
 start_id        = 100
 pad_id          = 0
@@ -16,3 +19,6 @@ result_path     = "../results/"
 model_path      = "../models/"
 logs_path       = "../logs/"
 figs_path       = "../figs/"
+
+import utils
+global_start_time = utils.now2string()

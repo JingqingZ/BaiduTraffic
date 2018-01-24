@@ -200,10 +200,10 @@ class Controller():
 
             self.__train__(global_epoch, root_data[:, :-config.valid_length, :], neighbour_data[:, :-config.valid_length, :], logger_train)
 
-            if epoch % 5 == 0:
+            if epoch % 1 == 0:
                 self.__valid__(global_epoch, root_data[:, -config.valid_length:, :], neighbour_data[:, -config.valid_length:, :], logger_valid)
 
-            if global_epoch > self.base_epoch and global_epoch % 5 == 0:
+            if global_epoch > self.base_epoch and global_epoch % 1 == 0:
                 self.save_model(
                     path=self.model_save_dir,
                     global_step=global_epoch
@@ -354,10 +354,10 @@ class Seq2Seq_Controller(Controller):
 
             self.__train__(global_epoch, root_data[:, :-config.valid_length, :], logger_train)
 
-            if epoch % 5 == 0:
+            if epoch % 1 == 0:
                 self.__valid__(global_epoch, root_data[:, -config.valid_length:, :], logger_valid)
 
-            if global_epoch > self.base_epoch and global_epoch % 5 == 0:
+            if global_epoch > self.base_epoch and global_epoch % 1 == 0:
                 self.save_model(
                     path=self.model_save_dir,
                     global_step=global_epoch
@@ -381,7 +381,7 @@ if __name__ == "__main__":
         decay_steps=2e4,
         decay_rate=0.5,
     )
-    ctl = Controller(model=model, base_epoch=-1)
+    ctl = Controller(model=model, base_epoch=0)
     '''
     model = model.Seq2Seq_Model(
         model_name="seq2seq_model",

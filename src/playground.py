@@ -307,7 +307,7 @@ def draw_sequence():
     plt.show()
 
 def filt_error():
-    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt.pkl", "rb")
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt_0.05.pkl", "rb")
     traffic_data_filt = pickle.load(traffic_data_file, encoding='latin1')
     traffic_data_file.close()
 
@@ -315,18 +315,79 @@ def filt_error():
     traffic_data = pickle.load(traffic_data_file, encoding='latin1')
     traffic_data_file.close()
 
-    sum_error = np.zeros(2)
+    sum_error = np.zeros(3)
     for key in traffic_data:
         mae = np.mean(np.abs(traffic_data[key] - traffic_data_filt[key]))
+        mape = np.mean(np.abs(traffic_data[key] - traffic_data_filt[key]) / traffic_data[key])
         mse = np.mean((traffic_data[key] - traffic_data_filt[key])**2)
         sum_error[0] += mae
-        sum_error[1] += mse
+        sum_error[1] += mape
+        sum_error[2] += mse
     sum_error /= len(traffic_data.keys())
     print(sum_error)
+
+def compare_filt():
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt.pkl", "rb")
+    traffic_data_filt = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt_0.1.pkl", "rb")
+    traffic_data_filt_01 = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt_0.05.pkl", "rb")
+    traffic_data_filt_005 = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min.pkl", "rb")
+    traffic_data = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    traffic_data_file = open(config.data_path + "event_traffic_beijing_mv_avg_15min_completion.pkl", "rb")
+    traffic_data_mv = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    for key in traffic_data:
+        plt.plot(traffic_data[key][:96*14], color="green")
+        plt.plot(traffic_data_filt[key][:96*14], color="red")
+        plt.plot(traffic_data_filt_01[key][:96*14], color="orange")
+        plt.plot(traffic_data_filt_005[key][:96*14], color="yellow")
+        plt.plot(traffic_data_mv[key][:96*14], color="blue")
+        plt.show()
+        exit()
+
+def get_event_link():
+    traffic_data_file = open(config.data_path + "event_traffic_beijing_mv_avg_15min_completion.pkl", "rb")
+    traffic_data_mv = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    traffic_link_set = open(config.data_path + "event_link_set_beijing", "r")
+    event_filter_file = open(config.data_path + "event_filter.txt", "r")
+    event_filter = eval(event_filter_file.readlines()[0])
+
+    event_time_file = open(config.data_path + "event_beijing_final.txt", "r")
+    event_time = event_time_file.readlines()
+
+    nodedict = dict()
+    iter = 0
+    for idx, event in enumerate(traffic_link_set):
+        if event_filter[idx] == 0:
+            continue
+        content = event_time[iter].split("\t")
+        nodes = event.replace("\n", "").split("\t")
+        for node in nodes:
+            if node not in nodedict:
+                nodedict[node] = list()
+            nodedict[node].append((content[0], content[1]))
+        iter += 1
+    pickle.dump(nodedict, open(config.data_path + "event_link_set_beijing_event_time.pkl", "wb"))
+
 
 if __name__ == "__main__":
     # roadnet_extraction()
     # draw_roadnet()
     # get_data()
     # draw_sequence()
-    filt_error()
+    # filt_error()
+    # compare_filt()
+    get_event_link()

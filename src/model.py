@@ -69,6 +69,9 @@ class Spacial_Model():
         self.train_net.print_params(False)
         self.train_net.print_layers()
 
+    def __get_mape__(self, out, target):
+        return tf.reduce_mean(tf.reduce_mean(tf.abs(out - target) / target, [1, 2]))
+
     def __create_loss__(self):
         self.mae_copy = tl.cost.absolute_difference_error(
             tf.slice(self.x_root, [0, config.in_seq_length - config.out_seq_length, 0], [config.batch_size, config.out_seq_length, 1]),
@@ -91,6 +94,10 @@ class Spacial_Model():
             tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
             is_mean=True
         )
+        self.mape_train_noend = self.__get_mape__(
+            tf.slice(self.train_net.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1])
+        )
         # test loss
         self.nmse_test_loss = tl.cost.normalized_mean_square_error(self.test_net.outputs, self.target_seqs)
         self.nmse_test_noend = tl.cost.normalized_mean_square_error(
@@ -106,6 +113,10 @@ class Spacial_Model():
             tf.slice(self.test_net.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
             tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
             is_mean=True
+        )
+        self.mape_test_noend = self.__get_mape__(
+            tf.slice(self.test_net.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1])
         )
         # adaptive train loss
         self.train_loss = self.nmse_train_loss
@@ -159,8 +170,8 @@ class Spacial_Model():
                 return_seq_2d=True,
                 name='seq2seq'
             )
-            net_out = DenseLayer(net_rnn, n_units=64, act=tf.identity, name='dense1')
-            net_out = DenseLayer(net_out, n_units=1, act=tf.identity, name='dense2')
+            # net_out = DenseLayer(net_rnn, n_units=64, act=tf.identity, name='dense1')
+            net_out = DenseLayer(net_rnn, n_units=1, act=tf.identity, name='dense2')
             net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
             return net_out
 
@@ -191,8 +202,8 @@ class Seq2Seq_Model(Spacial_Model):
                 return_seq_2d=True,
                 name='seq2seq'
             )
-            net_out = DenseLayer(net_rnn, n_units=64, act=tf.identity, name='dense1')
-            net_out = DenseLayer(net_out, n_units=1, act=tf.identity, name='dense2')
+            # net_out = DenseLayer(net_rnn, n_units=64, act=tf.identity, name='dense1')
+            net_out = DenseLayer(net_rnn, n_units=1, act=tf.identity, name='dense2')
             net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
             return net_out
 

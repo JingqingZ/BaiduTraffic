@@ -12,23 +12,26 @@ def find_neighbours(predecessor=5, successors=5):
     event_filter_flag = eval(event_filter_file.readline())
     event_filter_file.close()
 
-    event_set_file = open(config.data_path + "event_link_set_beijing", "r")
+    event_set_file = open(config.data_path + "event_link_set_beijing_1km", "r")
     event_set = event_set_file.readlines()
     event_set_file.close()
 
-    event_link_file = open(config.result_path + "event_link_set_beijing_link.txt", "r")
+    event_link_file = open(config.result_path + "event_link_set_beijing_link_1km.txt", "r")
     event_link = event_link_file.readlines()
     event_link_file.close()
 
-    event_pagerank_file = open(config.result_path + "pagerank.txt", "r")
+    event_pagerank_file = open(config.result_path + "pagerank_1km.txt", "r")
     event_pagerank = event_pagerank_file.readlines()
     event_pagerank_file.close()
 
-    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_mv_avg_15min_completion.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min.pkl", "rb")
+    traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min_completion.pkl", "rb")
     traffic_data = pickle.load(traffic_data_file, encoding='latin1')
     traffic_data_file.close()
 
-    outfile = open(config.result_path + "neighbours.txt", "w")
+    outfile = open(config.result_path + "neighbours_1km.txt", "w")
 
     assert len(event_filter_flag) == len(event_set)
     assert len(event_filter_flag) == len(event_link)
@@ -105,15 +108,20 @@ def find_neighbours(predecessor=5, successors=5):
 
 def load_data(predecessor=5, successors=5):
     print("Loading data...")
-    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt_0.05.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_mv_avg_15min_completion.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min.pkl", "rb")
+    traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min_completion.pkl", "rb")
     traffic_data = pickle.load(traffic_data_file, encoding='latin1')
     traffic_data_file.close()
 
-    neighbour_file = open(config.result_path + "neighbours.txt", "r")
+    neighbour_file = open(config.result_path + "neighbours_1km.txt", "r")
     neighbour = neighbour_file.readlines()
 
     rootdata = list()
     neigdata = list()
+
+    rootpathlist = list()
     for line in neighbour:
         group = eval(line)
         assert len(group) == predecessor + successors + 1
@@ -136,14 +144,22 @@ def load_data(predecessor=5, successors=5):
         rootdata.append(root_traffic)
         neigdata.append(neighbourlist)
 
+        rootpathlist.append(group[0])
+
     rootdata = np.stack(rootdata)
     neigdata = np.stack(neigdata)
 
     assert rootdata.shape[:-1] == neigdata.shape[:-1]
 
+    lowbound = 5
+    assert lowbound > 0
+    assert lowbound < np.percentile(rootdata, 2)
+    rootdata[rootdata < lowbound] = lowbound
+    neigdata[neigdata < lowbound] = lowbound
+
     print("Data Loaded: x_root %s, x_neighbour: %s" % (rootdata.shape, neigdata.shape))
 
-    return rootdata, neigdata
+    return rootdata, neigdata, rootpathlist
 
 def get_minibatch(root_data, neighbour_data, order, num_seq):
     minibatch_x_root = list()
@@ -174,18 +190,30 @@ def get_minibatch(root_data, neighbour_data, order, num_seq):
 
 def load_data_all():
     print("Loading data...")
-    traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt_0.05.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_mv_avg_15min_completion.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min.pkl", "rb")
+    traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min_completion.pkl", "rb")
     traffic_data = pickle.load(traffic_data_file, encoding='latin1')
     traffic_data_file.close()
 
     alldata = list()
+    nodelist = list()
     for node in traffic_data:
         alldata.append(traffic_data[node])
+        nodelist.append(node)
     alldata = np.stack(alldata)
     alldata = np.expand_dims(alldata, axis=-1)
 
+    # print(np.isfinite(alldata))
+    # print(np.sum(alldata))
+    lowbound = 5
+    assert lowbound > 0
+    assert lowbound < np.percentile(alldata, 2)
+    alldata[alldata < lowbound] = lowbound
+
     print("Data Loaded: all ", alldata.shape)
-    return alldata
+    return alldata, nodelist
 
 def get_minibatch_all(root_data, order, num_seq):
     minibatch_x_root = list()
@@ -211,12 +239,64 @@ def get_minibatch_all(root_data, order, num_seq):
 
     return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq
 
+def get_minibatch_4_test(root_data, path, cstep):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+
+    for o in range(config.batch_size):
+        baseloc = o + cstep * config.batch_size
+        minibatch_x_root.append(root_data[path, baseloc : baseloc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[path, baseloc + config.in_seq_length : baseloc + config.in_seq_length + config.out_seq_length, :])
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+
+    return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq
+
+def get_minibatch_4_test_neighbour(root_data, neighbour_data, path, cstep):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_x_neighbour = list()
+
+    for o in range(config.batch_size):
+        baseloc = o + cstep * config.batch_size
+        minibatch_x_root.append(root_data[path, baseloc : baseloc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[path, baseloc + config.in_seq_length : baseloc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_x_neighbour.append(neighbour_data[path, baseloc : baseloc + config.in_seq_length, :])
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    minibatch_x_neighbour = np.stack(minibatch_x_neighbour)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+
+    return minibatch_x_root, minibatch_x_neighbour, minibatch_decode_seq, minibatch_target_seq
+
 if __name__ == "__main__":
-    # find_neighbours(3, 3)
-    # r, n = load_data(3, 3)
-    # get_minibatch(r, n, order=[0,1], num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
+    # find_neighbours(5, 5)
+    r, n, p = load_data(5, 5)
+    get_minibatch(r, n, order=[0,1], num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
+    '''
     r = load_data_all()
     import time
     st = time.time()
     get_minibatch_all(r, order=list(range(config.batch_size)), num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
     print(time.time() - st)
+    '''
+

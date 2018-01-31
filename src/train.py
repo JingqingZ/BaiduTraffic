@@ -59,11 +59,6 @@ class Controller():
         utils.make_dirlist(dirlist)
 
     def __train__(self, epoch, root_data, neighbour_data, logger):
-        # shuffle data batch
-        root_data, neighbour_data = sklearn.utils.shuffle(
-            root_data,
-            neighbour_data
-        )
 
         each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
         total_batch_size = root_data.shape[0] * each_num_seq
@@ -185,7 +180,7 @@ class Controller():
         return all_loss
 
 
-    def __test__(self, epoch, root_data, neighbour_data, logger, pathlist):
+    def __test__(self, epoch, root_data, neighbour_data, logger, pathlist, test_interval=10):
 
         each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
         total_batch_size = root_data.shape[0] * each_num_seq
@@ -199,7 +194,7 @@ class Controller():
 
         round = 0
         pathpred = list()
-        for path in range(root_data.shape[0]):
+        for path in range(0, root_data.shape[0], test_interval):
             predlist = list()
             step_time = time.time()
             for cstep in range(each_num_seq // config.batch_size):
@@ -247,6 +242,11 @@ class Controller():
 
         pathpred = np.stack(pathpred, axis=0)
 
+        print(
+            "[Test Sum] Epoch [%3d]: time: %.4f, loss: %s, tloss: %s" %
+            (epoch, time.time() - start_time, all_loss / round, time_loss / round)
+        )
+
         return all_loss, time_loss, pathpred
 
 
@@ -287,13 +287,28 @@ class Controller():
 
             global_epoch += 1
 
+    def controller_test(self):
+        # root_data,pathlist  = dataloader.load_data_all()
+        root_data, neighbour_data, pathlist  = dataloader.load_data(5, 5)
+
+        last_save_epoch = self.base_epoch
+        global_epoch = self.base_epoch + 1
+
+        assert last_save_epoch >= 0
+        self.restore_model(
+            path=self.model_save_dir,
+            global_step=last_save_epoch
+        )
+
+        logger_test = log.Logger(columns=["mae_copy", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"] + list(range(15, 121, 15)))
+
+        self.__test__(global_epoch, root_data[:, -config.valid_length:, :], neighbour_data[:, -config.valid_length:, :], logger_test, pathlist, test_interval=1)
+
+        logger_test.save(self.log_save_dir + config.global_start_time + "_test.csv")
+
 class Seq2Seq_Controller(Controller):
 
     def __train__(self, epoch, root_data, logger):
-        # shuffle data batch
-        root_data = sklearn.utils.shuffle(
-            root_data
-        )
 
         each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
         total_batch_size = root_data.shape[0] * each_num_seq
@@ -411,7 +426,7 @@ class Seq2Seq_Controller(Controller):
         return all_loss
 
 
-    def __test__(self, epoch, root_data, logger, pathlist, save=True):
+    def __test__(self, epoch, root_data, logger, pathlist, test_interval=10):
 
         each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
         total_batch_size = root_data.shape[0] * each_num_seq
@@ -425,7 +440,7 @@ class Seq2Seq_Controller(Controller):
 
         round = 0
         pathpred = list()
-        for path in range(root_data.shape[0]):
+        for path in range(0, root_data.shape[0], test_interval):
             predlist = list()
             step_time = time.time()
             for cstep in range(each_num_seq // config.batch_size):
@@ -489,12 +504,17 @@ class Seq2Seq_Controller(Controller):
 
             if path % 500 == 0:
                 print(
-                    "[Test Sum] Epoch: [%3d][%5d/%5d] time: %.4f, loss: %s, tloss: %s" %
+                    "[Test] Epoch: [%3d][%5d/%5d] time: %.4f, loss: %s, tloss: %s" %
                     (epoch, path, root_data.shape[0], time.time() - step_time, all_loss / round, time_loss / round)
                 )
             logger.add_log("%d_%s" % (epoch, pathlist[path]), list(all_loss / round) + list(time_loss / round))
 
         pathpred = np.stack(pathpred, axis=0)
+
+        print(
+            "[Test Sum] Epoch [%3d]: time: %.4f, loss: %s, tloss: %s" %
+            (epoch, time.time() - start_time, all_loss / round, time_loss / round)
+        )
 
         return all_loss, time_loss, pathpred
 
@@ -553,10 +573,216 @@ class Seq2Seq_Controller(Controller):
 
         logger_test = log.Logger(columns=["mae_copy", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"] + list(range(15, 121, 15)))
 
-        self.__test__(global_epoch, root_data[:, -config.valid_length:, :], logger_test, pathlist)
+        self.__test__(global_epoch, root_data[:, -config.valid_length:, :], logger_test, pathlist, test_interval=1)
 
         logger_test.save(self.log_save_dir + config.global_start_time + "_test.csv")
 
+class WideDeep_Controller(Controller):
+
+    def __train__(self, epoch, root_data, features_info, features_time, logger):
+
+        each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
+        total_batch_size = root_data.shape[0] * each_num_seq
+        train_order = list(range(total_batch_size))
+        random.shuffle(train_order)
+        train_order = train_order[:config.batch_size * 1000]
+
+        all_loss = np.zeros(13)
+
+        start_time = time.time()
+        step_time = time.time()
+        train_steps = len(train_order) // config.batch_size
+
+        for cstep in range(train_steps):
+
+            x_root, x_features, decode_seq, target_seq = dataloader.get_minibatch_features(
+                root_data,
+                features_info,
+                features_time,
+                order=train_order[cstep * config.batch_size : (cstep + 1) * config.batch_size],
+                num_seq=each_num_seq
+            )
+
+            global_step = cstep + epoch * train_steps
+
+            results = self.sess.run([
+                self.model.mae_copy,
+                self.model.train_loss,
+                self.model.nmse_train_loss,
+                self.model.nmse_train_noend,
+                self.model.mse_train_noend,
+                self.model.mae_train_noend,
+                self.model.mape_train_noend,
+                self.model.test_loss,
+                self.model.nmse_test_loss,
+                self.model.nmse_test_noend,
+                self.model.mse_test_noend,
+                self.model.mae_test_noend,
+                self.model.mape_test_noend,
+                self.model.learning_rate,
+                self.model.optim],
+                feed_dict={
+                    self.model.x_root: x_root,
+                    self.model.features: x_features,
+                    self.model.decode_seqs: decode_seq,
+                    self.model.target_seqs: target_seq,
+                    self.model.global_step: global_step,
+                })
+
+            all_loss += np.array(results[:-2])
+
+            if cstep % 100 == 0 and cstep > 0:
+                print(
+                    "[Train] Epoch: [%3d][%4d/%4d] time: %.4f, lr: %.8f, loss: %s" %
+                    (epoch, cstep, train_steps, time.time() - step_time, results[-2], all_loss / (cstep + 1))
+                )
+                step_time = time.time()
+                logger.add_log(global_step, all_loss / (cstep + 1))
+
+        print(
+            "[Train Sum] Epoch: [%3d] time: %.4f, lr: %.8f, loss: %s" %
+            (epoch, time.time() - start_time, results[-2], all_loss / train_steps)
+        )
+        logger.add_log(global_step, all_loss / train_steps)
+
+        return all_loss
+
+
+    def __test__(self, epoch, root_data, features_info, features_time, logger, pathlist, test_interval=10):
+
+        each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
+        total_batch_size = root_data.shape[0] * each_num_seq
+
+        all_loss = np.zeros(7)
+        time_loss = np.zeros(config.out_seq_length)
+
+        start_time = time.time()
+        step_time = time.time()
+
+        round = 0
+        pathpred = list()
+        for path in range(0, root_data.shape[0], test_interval):
+            predlist = list()
+            step_time = time.time()
+            for cstep in range(each_num_seq // config.batch_size):
+                round += 1
+
+                x_root, x_features, decode_seq, target_seq = dataloader.get_minibatch_features_4_test(
+                    root_data,
+                    features_info,
+                    features_time,
+                    path,
+                    cstep
+                )
+
+                allresults = self.sess.run([
+                    self.model.test_net.outputs,
+                    self.model.mae_copy,
+                    self.model.test_loss,
+                    self.model.nmse_test_loss,
+                    self.model.nmse_test_noend,
+                    self.model.mse_test_noend,
+                    self.model.mae_test_noend,
+                    self.model.mape_test_noend],
+                    feed_dict={
+                        self.model.x_root: x_root,
+                        self.model.features: x_features,
+                        self.model.decode_seqs: decode_seq,
+                        self.model.target_seqs: target_seq,
+                    })
+                pred = allresults[0]
+                results = allresults[1:]
+
+                all_loss += np.array(results[:7])
+                time_loss += np.mean(utils.mape(pred[:, :config.out_seq_length, 0], target_seq[:, :config.out_seq_length, 0]), axis=0)
+
+                predlist.append(pred)
+
+            predlist = np.concatenate(predlist, axis=0)
+            pathpred.append(predlist)
+
+            if path % 500 == 0:
+                print(
+                    "[Test] Epoch: [%3d][%5d/%5d] time: %.4f, loss: %s, tloss: %s" %
+                    (epoch, path, root_data.shape[0], time.time() - step_time, all_loss / round, time_loss / round)
+                )
+            logger.add_log("%d_%s" % (epoch, pathlist[path]), list(all_loss / round) + list(time_loss / round))
+
+        pathpred = np.stack(pathpred, axis=0)
+
+        print(
+            "[Test Sum] Epoch [%3d]: time: %.4f, loss: %s, tloss: %s" %
+            (epoch, time.time() - start_time, all_loss / round, time_loss / round)
+        )
+
+        return all_loss, time_loss, pathpred
+
+    def controller_train(self, tepoch=config.epoch):
+        # root_data, pathlist  = dataloader.load_data_all()
+        root_data, neighbour_data, pathlist  = dataloader.load_data(5, 5)
+        del neighbour_data
+        features_info, features_time, features_pathlist = dataloader.load_features(pathlist)
+
+        assert features_info.shape[0] == root_data.shape[0]
+        assert features_pathlist == pathlist
+
+        last_save_epoch = self.base_epoch
+        global_epoch = self.base_epoch + 1
+
+        if last_save_epoch >= 0:
+            self.restore_model(
+                path=self.model_save_dir,
+                global_step=last_save_epoch
+            )
+
+        logger_train = log.Logger(columns=["mae_copy", "loss", "nmse_train", "nmse", "mse", "mae", "mape", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"])
+        # logger_valid = log.Logger(columns=["mae_copy", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"])
+        logger_test = log.Logger(columns=["mae_copy", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"] + list(range(15, 121, 15)))
+
+        for epoch in range(tepoch + 1):
+
+            self.__train__(global_epoch, root_data[:, :-config.valid_length, :], features_info, features_time, logger_train)
+
+            if epoch % config.test_p_epoch == 0:
+                # self.__valid__(global_epoch, root_data[:, -config.valid_length:, :], logger_valid)
+                self.__test__(global_epoch, root_data[:, -config.valid_length:, :], features_info, features_time, logger_test, pathlist)
+
+            if global_epoch > self.base_epoch and global_epoch % config.save_p_epoch == 0:
+                self.save_model(
+                    path=self.model_save_dir,
+                    global_step=global_epoch
+                )
+                last_save_epoch = global_epoch
+
+            logger_train.save(self.log_save_dir + config.global_start_time + "_train.csv")
+            # logger_valid.save(self.log_save_dir + config.global_start_time + "_valid.csv")
+            logger_test.save(self.log_save_dir + config.global_start_time + "_test.csv")
+
+            global_epoch += 1
+
+    def controller_test(self):
+        # root_data,pathlist  = dataloader.load_data_all()
+        root_data, neighbour_data, pathlist  = dataloader.load_data(5, 5)
+        del neighbour_data
+        features_info, features_time, features_pathlist = dataloader.load_features(pathlist)
+
+        assert features_info.shape[0] == root_data.shape[0]
+        assert features_pathlist == pathlist
+
+        last_save_epoch = self.base_epoch
+        global_epoch = self.base_epoch + 1
+
+        assert last_save_epoch >= 0
+        self.restore_model(
+            path=self.model_save_dir,
+            global_step=last_save_epoch
+        )
+
+        logger_test = log.Logger(columns=["mae_copy", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"] + list(range(15, 121, 15)))
+
+        self.__test__(global_epoch, root_data[:, -config.valid_length:, :], features_info, features_time, logger_test, pathlist, test_interval=1)
+
+        logger_test.save(self.log_save_dir + config.global_start_time + "_test.csv")
 
 
 if __name__ == "__main__":
@@ -564,21 +790,36 @@ if __name__ == "__main__":
         linewidth=150,
         formatter={'float_kind': lambda x: "%.4f" % x}
     )
+
+    '''
     model = model.Spacial_Model(
         model_name="spacial_model",
         start_learning_rate=0.001,
         decay_steps=2e4,
         decay_rate=0.5,
     )
-    ctl = Controller(model=model, base_epoch=-1)
+    ctl = Controller(model=model, base_epoch=100)
+    ctl.controller_train(tepoch=2)
+    ctl.controller_test()
+    '''
+
     '''
     model = model.Seq2Seq_Model(
         model_name="seq2seq_model",
         start_learning_rate=0.001,
-        decay_steps=2e5,
+        decay_steps=2e4,
         decay_rate=0.5,
     )
-    ctl = Seq2Seq_Controller(model=model, base_epoch=-1)
+    ctl = Seq2Seq_Controller(model=model, base_epoch=90)
+    ctl.controller_test()
     '''
-    ctl.controller_train()
-    # ctl.controller_test()
+
+    model = model.WideDeep_Model(
+        model_name="widedeep_model",
+        start_learning_rate=0.001,
+        decay_steps=2e4,
+        decay_rate=0.5,
+    )
+    ctl = WideDeep_Controller(model=model, base_epoch=100)
+    # ctl.controller_train()
+    ctl.controller_test()

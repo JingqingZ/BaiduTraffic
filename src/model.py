@@ -207,6 +207,60 @@ class Seq2Seq_Model(Spacial_Model):
             net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
             return net_out
 
+class WideDeep_Model(Spacial_Model):
+
+    def __init__(
+            self,
+            *args,
+            **kwargs
+    ):
+        self.__create_placeholders_for_features__()
+        super(WideDeep_Model, self).__init__(*args, **kwargs)
+
+
+    def __create_placeholders_for_features__(self):
+
+        self.features = tf.placeholder(
+            dtype=tf.float32,
+            shape=[config.batch_size, config.out_seq_length + 1, config.dim_features],
+            name='input_features'
+        )
+
+    def __get_network__(self, is_train=True, reuse=False):
+        w_init = tf.random_normal_initializer(stddev=0.02)
+        g_init = tf.random_normal_initializer(1., 0.02)
+
+        with tf.variable_scope(self.model_name, reuse=reuse) as vs:
+            tl.layers.set_name_reuse(reuse)
+
+            net_features = InputLayer(self.features, name="in_features")
+            net_features = ReshapeLayer(net_features, (config.batch_size * (config.out_seq_length + 1), config.dim_features), name="reshape_feature_1")
+            net_features = DenseLayer(net_features, n_units=32, act=tf.nn.relu, name='dense_features')
+
+            net_encode = InputLayer(self.x_root, name='in_root')
+            net_decode = InputLayer(self.decode_seqs, name="decode")
+
+            net_rnn = Seq2Seq(
+                net_encode, net_decode,
+                cell_fn=tf.contrib.rnn.BasicLSTMCell,
+                n_hidden=config.dim_hidden,
+                initializer=tf.random_uniform_initializer(-0.1, 0.1),
+                encode_sequence_length=tl.layers.retrieve_seq_length_op(net_encode.outputs),
+                decode_sequence_length=tl.layers.retrieve_seq_length_op(net_decode.outputs),
+                initial_state_encode=None,
+                # dropout=(0.8 if is_train else None),
+                dropout=None,
+                n_layer=1,
+                return_seq_2d=True,
+                name='seq2seq'
+            )
+
+            # net_out = DenseLayer(net_rnn, n_units=64, act=tf.identity, name='dense1')
+            net_out = ConcatLayer([net_rnn, net_features], concat_dim=-1, name="concat")
+            net_out = DenseLayer(net_out, n_units=1, act=tf.identity, name='dense2')
+            net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
+            return net_out
+
 
 if __name__ == "__main__":
     '''
@@ -217,8 +271,16 @@ if __name__ == "__main__":
         decay_rate=0.8,
     )
     '''
+    '''
     model = Seq2Seq_Model(
         model_name="seq2seq_model",
+        start_learning_rate=0.001,
+        decay_steps=400,
+        decay_rate=0.8,
+    )
+    '''
+    model = WideDeep_Model(
+        model_name="widedeep_model",
         start_learning_rate=0.001,
         decay_steps=400,
         decay_rate=0.8,

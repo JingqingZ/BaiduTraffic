@@ -239,6 +239,69 @@ def get_minibatch_all(root_data, order, num_seq):
 
     return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq
 
+def get_minibatch_features(root_data, features_info, features_time, order, num_seq):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_features = list()
+
+    for o in order:
+        seq_id = o // num_seq
+        seq_loc = o % num_seq
+        minibatch_x_root.append(root_data[seq_id, seq_loc : seq_loc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length, :])
+
+        f = np.zeros([config.out_seq_length + 1, config.dim_features])
+        for fi in range(config.out_seq_length):
+            f[fi, :config.dim_features_info] = features_info[seq_id, :]
+            f[fi, -config.dim_features_time:] = features_time[seq_loc + config.in_seq_length + fi, :]
+        minibatch_features.append(f)
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    minibatch_features = np.stack(minibatch_features)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+
+    return minibatch_x_root, minibatch_features, minibatch_decode_seq, minibatch_target_seq
+
+def get_minibatch_features_4_test(root_data, features_info, features_time, path, cstep):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_features = list()
+
+    for o in range(config.batch_size):
+        baseloc = o + cstep * config.batch_size
+        minibatch_x_root.append(root_data[path, baseloc : baseloc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[path, baseloc + config.in_seq_length : baseloc + config.in_seq_length + config.out_seq_length, :])
+
+        f = np.zeros([config.out_seq_length + 1, config.dim_features])
+        for fi in range(config.out_seq_length):
+            f[fi, :config.dim_features_info] = features_info[path, :]
+            f[fi, -config.dim_features_time:] = features_time[-config.valid_length + baseloc + config.in_seq_length + fi, :]
+        minibatch_features.append(f)
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    minibatch_features = np.stack(minibatch_features)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+
+    return minibatch_x_root, minibatch_features, minibatch_decode_seq, minibatch_target_seq
+
 def get_minibatch_4_test(root_data, path, cstep):
     minibatch_x_root = list()
     minibatch_y_root = list()
@@ -288,10 +351,46 @@ def get_minibatch_4_test_neighbour(root_data, neighbour_data, path, cstep):
 
     return minibatch_x_root, minibatch_x_neighbour, minibatch_decode_seq, minibatch_target_seq
 
+def load_features(pathlist=None):
+    print("Loading Features ...")
+    coarse_file = open(config.data_path + "wide_features/event_link_set_all_poi_type_feature_coarse_beijing_1km.pkl", "rb")
+    fine_file = open(config.data_path + "wide_features/event_link_set_all_poi_type_feature_fine_beijing_1km.pkl", "rb")
+    info_file = open(config.data_path + "wide_features/event_link_set_all_beijing_1km_link_info_feature.pkl", "rb")
+    time_file = open(config.data_path + "wide_features/time_feature_15min.pkl", "rb")
+
+    linklist_coarse, features_coarse = pickle.load(coarse_file, encoding='latin1')
+    linklist_fine, features_fine = pickle.load(fine_file, encoding='latin1')
+    linklist_info, features_info = pickle.load(info_file, encoding='latin1')
+    features_time = pickle.load(time_file, encoding='latin1')
+
+    coarse_file.close()
+    fine_file.close()
+    info_file.close()
+    time_file.close()
+
+    assert linklist_coarse == linklist_fine
+    assert linklist_coarse == linklist_info
+    linklist = linklist_coarse
+
+    if pathlist is not None:
+        new_features_info = np.zeros((len(pathlist), features_info.shape[1]))
+
+        for pid, path in enumerate(pathlist):
+            linkidx = linklist.index(path)
+            new_features_info[pid, :] = features_info[linkidx, :]
+
+        features_info = new_features_info
+        linklist = pathlist
+
+    print("Features Loaded. Info %s, Time %s" % (features_info.shape, features_time.shape))
+
+    return features_info, features_time, linklist
+
+
 if __name__ == "__main__":
     # find_neighbours(5, 5)
-    r, n, p = load_data(5, 5)
-    get_minibatch(r, n, order=[0,1], num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
+    # r, n, p = load_data(5, 5)
+    # get_minibatch(r, n, order=[0,1], num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
     '''
     r = load_data_all()
     import time
@@ -299,4 +398,9 @@ if __name__ == "__main__":
     get_minibatch_all(r, order=list(range(config.batch_size)), num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
     print(time.time() - st)
     '''
+    fi, ft, fp = load_features(["1525826704", "1561981475"])
+    print(fi)
+    print(ft)
+    print(fp)
+    pass
 

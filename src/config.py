@@ -4,6 +4,9 @@ in_seq_length   = 4 * 24
 out_seq_length  = 4 * 2
 num_neighbour   = 10
 dim_hidden      = 128
+dim_features_info = 131
+dim_features_time = 6
+dim_features    = dim_features_info + dim_features_time
 
 valid_length    = 2900
 

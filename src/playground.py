@@ -300,7 +300,6 @@ def get_data():
     print(incom)
     print(len(t))
 
-
 def draw_sequence():
     root_data, neighbour_data = dataloader.load_data(3, 3)
     plt.plot(root_data[0, :96*7, 0])
@@ -357,11 +356,11 @@ def compare_filt():
         exit()
 
 def get_event_link():
-    traffic_data_file = open(config.data_path + "event_traffic_beijing_mv_avg_15min_completion.pkl", "rb")
-    traffic_data_mv = pickle.load(traffic_data_file, encoding='latin1')
-    traffic_data_file.close()
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min_completion.pkl", "rb")
+    # traffic_data_mv = pickle.load(traffic_data_file, encoding='latin1')
+    # traffic_data_file.close()
 
-    traffic_link_set = open(config.data_path + "event_link_set_beijing", "r")
+    traffic_link_set = open(config.data_path + "event_link_set_beijing_1km", "r")
     event_filter_file = open(config.data_path + "event_filter.txt", "r")
     event_filter = eval(event_filter_file.readlines()[0])
 
@@ -378,9 +377,21 @@ def get_event_link():
         for node in nodes:
             if node not in nodedict:
                 nodedict[node] = list()
-            nodedict[node].append((content[0], content[1]))
+            nodedict[node].append((int(content[0]) // 3, int(content[1]) // 3))
         iter += 1
-    pickle.dump(nodedict, open(config.data_path + "event_link_set_beijing_event_time.pkl", "wb"))
+    for idx, node in enumerate(nodedict):
+        if idx > 100:
+            break
+        print(nodedict[node])
+    pickle.dump(nodedict, open(config.data_path + "event_link_set_beijing_event_time_1km.pkl", "wb"))
+
+def analyse_event_link():
+    data = pickle.load(open(config.data_path + "event_link_set_beijing_event_time_1km.pkl", "rb"))
+    for idx, node in enumerate(data):
+        for time in data[node]:
+            if time[1] >= 61*96:
+                print(node)
+
 
 
 if __name__ == "__main__":
@@ -390,4 +401,12 @@ if __name__ == "__main__":
     # draw_sequence()
     # filt_error()
     # compare_filt()
-    get_event_link()
+    # get_event_link()
+    # analyse_event_link()
+    data = pickle.load(open(datapath + "query_distribution_beijing_1km_k_50.pkl", "rb"), encoding='latin1')
+    # data = np.load(config.result_path + "seq2seq_model/91_test.npz")
+    # data = data["pred"]
+    print(len(data.keys()))
+    for node in data:
+        print(data[node].shape)
+        exit()

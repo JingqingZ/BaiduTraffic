@@ -8,6 +8,7 @@ dim_features_info = 131
 dim_features_time = 6
 dim_features    = dim_features_info + dim_features_time
 
+full_length     = 61 * 24 * 4
 valid_length    = 2900
 
 start_id        = 100
@@ -27,3 +28,9 @@ figs_path       = "../figs/"
 
 import utils
 global_start_time = utils.now2string()
+
+import numpy as np
+np.set_printoptions(
+    linewidth=150,
+    formatter={'float_kind': lambda x: "%.4f" % x}
+)

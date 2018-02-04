@@ -161,6 +161,18 @@ def load_data(predecessor=5, successors=5):
 
     return rootdata, neigdata, rootpathlist
 
+def get_pathlist():
+
+    pathlist = list()
+    neighbour_file = open(config.result_path + "neighbours_1km.txt", "r")
+    neighbour = neighbour_file.readlines()
+
+    for line in neighbour:
+        group = eval(line)
+        pathlist.append(group[0])
+
+    return pathlist
+
 def get_minibatch(root_data, neighbour_data, order, num_seq):
     minibatch_x_root = list()
     minibatch_x_neighbour = list()
@@ -238,6 +250,71 @@ def get_minibatch_all(root_data, order, num_seq):
     minibatch_target_seq[:, -1, :] = config.end_id
 
     return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq
+
+def get_minibatch_all_query(root_data, query_data, pathlist, order, num_seq):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_query_x = list()
+    minibatch_query_y = list()
+
+    for o in order:
+        seq_id = o // num_seq
+        seq_loc = o % num_seq
+        minibatch_x_root.append(root_data[seq_id, seq_loc : seq_loc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_query_x.append(query_data[pathlist[seq_id]][seq_loc : seq_loc + config.in_seq_length, :])
+        minibatch_query_y.append(query_data[pathlist[seq_id]][seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length, :])
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    minibatch_query_x = np.stack(minibatch_query_x)
+    minibatch_query_y = np.stack(minibatch_query_y)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_decode_seq_query = np.zeros((minibatch_query_y.shape[0], minibatch_query_y.shape[1] + 1, minibatch_query_y.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+    minibatch_decode_seq_query[:, 1: ,:] = minibatch_query_y
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+    minibatch_decode_seq_query[:, 0, :] = config.start_id
+
+    return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq, minibatch_query_x, minibatch_decode_seq_query
+
+def get_minibatch_4_test_query(root_data, query_data, path, pathlist, cstep):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_query_x = list()
+    minibatch_query_y = list()
+
+    for o in range(config.batch_size):
+        baseloc = o + cstep * config.batch_size
+        minibatch_x_root.append(root_data[path, baseloc : baseloc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[path, baseloc + config.in_seq_length : baseloc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_query_x.append(query_data[pathlist[path]][baseloc : baseloc + config.in_seq_length, :])
+        minibatch_query_y.append(query_data[pathlist[path]][baseloc + config.in_seq_length : baseloc + config.in_seq_length + config.out_seq_length, :])
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    minibatch_query_x = np.stack(minibatch_query_x)
+    minibatch_query_y = np.stack(minibatch_query_y)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_decode_seq_query = np.zeros((minibatch_query_y.shape[0], minibatch_query_y.shape[1] + 1, minibatch_query_y.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+    minibatch_decode_seq_query[:, 1: ,:] = minibatch_query_y
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+    minibatch_decode_seq_query[:, 0, :] = config.start_id
+
+    return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq, minibatch_query_x, minibatch_decode_seq_query
 
 def get_minibatch_features(root_data, features_info, features_time, order, num_seq):
     minibatch_x_root = list()
@@ -351,6 +428,87 @@ def get_minibatch_4_test_neighbour(root_data, neighbour_data, path, cstep):
 
     return minibatch_x_root, minibatch_x_neighbour, minibatch_decode_seq, minibatch_target_seq
 
+def get_event_filter(event_period):
+    event_filter = [0] * config.valid_length
+    for etime in event_period:
+        for t in range(etime[0], etime[1]):
+            vt = t - (config.full_length - config.valid_length)
+            if vt < 0:
+                break
+            event_filter[vt] = 1
+    return event_filter
+
+def get_event_filter_allpath(event_data, pathlist):
+    filter = np.zeros((len(pathlist), config.valid_length))
+    for idx, path in enumerate(pathlist):
+        filter[idx] = get_event_filter(event_data[path])
+        # print(np.sum(filter[idx]))
+    # print(filter.shape)
+    return filter
+
+def get_event_orders(event_filter_allpath, full_train_order, num_seq):
+    train_order = [0] * (config.batch_size * 500)
+    curnum = 0
+    for ord in full_train_order:
+        seq_id = ord // num_seq
+        seq_loc = ord % num_seq
+        if np.sum(event_filter_allpath[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length]) > 0:
+            train_order[curnum] = ord
+            curnum += 1
+        if curnum == config.batch_size * 500:
+            break
+    assert curnum == config.batch_size * 500
+    return train_order
+
+def get_minibatch_4_test_event(root_data, event_filter, path, startidx, neighbour_data=None):
+    assert root_data.shape[1] == len(event_filter)
+
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_x_neighbour = list()
+
+    curidx = startidx
+    while len(minibatch_x_root) < config.batch_size and \
+                    curidx < config.valid_length - config.in_seq_length - config.out_seq_length:
+        flag = True
+        for i in range(config.out_seq_length):
+            if event_filter[curidx + config.in_seq_length + i] == 0:
+                flag = False
+                break
+        if not flag:
+            curidx += 1
+            continue
+        minibatch_x_root.append(root_data[path, curidx : curidx + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[path, curidx + config.in_seq_length : curidx + config.in_seq_length + config.out_seq_length, :])
+        # minibatch_x_neighbour.append(neighbour_data[path, baseloc : baseloc + config.in_seq_length, :])
+        curidx += 1
+
+
+    if len(minibatch_x_root) < config.batch_size / 2:
+        return None, None, None, curidx, True
+    else:
+        for last in range(config.batch_size - len(minibatch_x_root)):
+            minibatch_x_root.append(minibatch_x_root[-1])
+            minibatch_y_root.append(minibatch_y_root[-1])
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    # minibatch_x_neighbour = np.stack(minibatch_x_neighbour)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+
+    if curidx < config.valid_length - config.in_seq_length - config.out_seq_length:
+        return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq, curidx, False
+
+    return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq, curidx, True
+
 def load_features(pathlist=None):
     print("Loading Features ...")
     coarse_file = open(config.data_path + "wide_features/event_link_set_all_poi_type_feature_coarse_beijing_1km.pkl", "rb")
@@ -386,6 +544,49 @@ def load_features(pathlist=None):
 
     return features_info, features_time, linklist
 
+def load_event_data():
+    '''
+
+    rootdata, neighbourdata, pathlist = load_data(5, 5)
+    event_period = pickle.load(open(config.data_path + "event_link_set_beijing_event_time_1km.pkl", "rb"))
+
+    pathid = dict()
+    # dup = 0
+    for idx ,path in enumerate(pathlist):
+        # if path in pathid:
+        #     dup += 1
+        pathid[path] = idx
+    # print(dup)
+
+    event_period_data_list = list()
+    for path in event_period:
+        if path not in pathid:
+            continue
+        for event in event_period[path]:
+            starttime = event[0]
+            endtime = event[1]
+            if endtime < config.full_length - config.valid_length:
+                continue
+            for ctime in range(starttime, endtime - config.out_seq_length):
+                event_period_data_list.append(rootdata[pathid[path], ctime - config.in_seq_length : ctime + config.out_seq_length, :])
+
+    event_period_data_list = np.stack(event_period_data_list, axis=0)
+    print(event_period_data_list.shape)
+    return event_period_data_list
+    '''
+    event_period = pickle.load(open(config.data_path + "event_link_set_beijing_event_time_1km.pkl", "rb"))
+    return event_period
+
+def get_query_data():
+    print("Loading Query...")
+    data = pickle.load(open(config.data_path + "query_distribution_beijing_1km_k_50.pkl", "rb"), encoding='latin1')
+    for node in data:
+        data[node] = np.expand_dims(np.array(data[node]), axis=1)
+        assert data[node].shape[0] == config.full_length
+        assert data[node].shape[1] == 1
+    print("Query Loaded")
+    return data
+
 
 if __name__ == "__main__":
     # find_neighbours(5, 5)
@@ -398,9 +599,32 @@ if __name__ == "__main__":
     get_minibatch_all(r, order=list(range(config.batch_size)), num_seq=r.shape[1] - (config.in_seq_length + config.out_seq_length) + 1)
     print(time.time() - st)
     '''
+    '''
     fi, ft, fp = load_features(["1525826704", "1561981475"])
     print(fi)
     print(ft)
     print(fp)
+    '''
+    # load_features()
+    '''
+    e = load_event_data()
+    for node in e.keys():
+        road = node
+        break
+    print(e[road])
+    ef = get_event_filter(e[road])
+    print(ef)
+    print(len(ef))
+    exit()
+    x, d, t, eidx, end = get_minibatch_4_test_event(r[:, -config.valid_length:,:], ef, 0, 0)
+    print(x.shape)
+    print(d.shape)
+    print(t.shape)
+    print(eidx)
+    print(end)
+    '''
+    e = load_event_data()
+    p = get_pathlist()
+    get_event_filter_allpath(e, p)
     pass
 

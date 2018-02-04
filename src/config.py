@@ -34,3 +34,5 @@ np.set_printoptions(
     linewidth=150,
     formatter={'float_kind': lambda x: "%.4f" % x}
 )
+
+impact_k       = 50

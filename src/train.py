@@ -1014,7 +1014,7 @@ class Query_Comb_Controller(Controller):
         random.shuffle(full_train_order)
 
         nonevent_train_order = full_train_order[:config.batch_size * 500]
-        event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq)
+        event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=500)
         train_order = nonevent_train_order + event_train_order
         random.shuffle(train_order)
 

@@ -446,8 +446,8 @@ def get_event_filter_allpath(event_data, pathlist):
     # print(filter.shape)
     return filter
 
-def get_event_orders(event_filter_allpath, full_train_order, num_seq):
-    train_order = [0] * (config.batch_size * 500)
+def get_event_orders(event_filter_allpath, full_train_order, num_seq, tsteps=500):
+    train_order = [0] * (config.batch_size * tsteps)
     curnum = 0
     for ord in full_train_order:
         seq_id = ord // num_seq
@@ -455,9 +455,9 @@ def get_event_orders(event_filter_allpath, full_train_order, num_seq):
         if np.sum(event_filter_allpath[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length]) > 0:
             train_order[curnum] = ord
             curnum += 1
-        if curnum == config.batch_size * 500:
+        if curnum == config.batch_size * tsteps:
             break
-    assert curnum == config.batch_size * 500
+    assert curnum == config.batch_size * tsteps
     return train_order
 
 def get_minibatch_4_test_event(root_data, event_filter, path, startidx, neighbour_data=None):
@@ -579,7 +579,7 @@ def load_event_data():
 
 def get_query_data():
     print("Loading Query...")
-    data = pickle.load(open(config.data_path + "query_distribution_beijing_1km_k_50.pkl", "rb"), encoding='latin1')
+    data = pickle.load(open(config.data_path + "query_distribution_beijing_1km_k_%d.pkl" % config.impact_k, "rb"), encoding='latin1')
     for node in data:
         data[node] = np.expand_dims(np.array(data[node]), axis=1)
         assert data[node].shape[0] == config.full_length
@@ -623,8 +623,28 @@ if __name__ == "__main__":
     print(eidx)
     print(end)
     '''
+    '''
     e = load_event_data()
     p = get_pathlist()
-    get_event_filter_allpath(e, p)
+    eap = get_event_filter_allpath(e, p)
+
+    each_num_seq = config.valid_length - (config.in_seq_length + config.out_seq_length) + 1
+    total_batch_size = 15073 * each_num_seq
+
+    eorder = get_event_orders(eap, list(range(total_batch_size)), each_num_seq)
+    print(len(eorder))
+
+    for i in range(10):
+        pathid = eorder[i] // each_num_seq
+        pathlod = eorder[i] % each_num_seq
+        print(pathid)
+        print(pathlod)
+
+        print(eap[pathid][pathlod + config.in_seq_length: pathlod + config.in_seq_length + config.out_seq_length])
+    '''
+    get_query_data()
+
+
+
     pass
 

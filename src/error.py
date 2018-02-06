@@ -76,6 +76,8 @@ def get_error(filename):
 
 if __name__ == "__main__":
     # get_error(config.result_path + "seq2seq_model/91_test_copy.npz")
-    get_error(config.result_path + "spacial_model/101_test_copy.npz")
-    get_error(config.result_path + "widedeep_model/101_test_copy.npz")
+    # get_error(config.result_path + "spacial_model/101_test_copy.npz")
+    # get_error(config.result_path + "widedeep_model/101_test_copy.npz")
+    # get_error(config.result_path + "query_comb_model/101_test_notsample_50_copy.npz")
+    get_error(config.result_path + "query_comb_model/141_test_sample_50_copy.npz")
     pass

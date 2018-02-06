@@ -35,4 +35,8 @@ np.set_printoptions(
     formatter={'float_kind': lambda x: "%.4f" % x}
 )
 
-impact_k       = 50
+impact_k        = 50
+
+all_model_stage_epoch = 100
+
+gpu_memory      = 0.5

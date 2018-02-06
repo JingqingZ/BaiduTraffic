@@ -27,7 +27,9 @@ class Controller():
     def __init__(self, model, base_epoch):
         self.model = model
         self.saver = tf.train.Saver(max_to_keep=50)
-        self.sess = tf.Session()
+        gpu_config = tf.ConfigProto()
+        gpu_config.gpu_options.per_process_gpu_memory_fraction = config.gpu_memory
+        self.sess = tf.Session(config=gpu_config)
         tl.layers.initialize_global_variables(self.sess)
 
         self.base_epoch = base_epoch
@@ -1013,9 +1015,11 @@ class Query_Comb_Controller(Controller):
         full_train_order = list(range(total_batch_size))
         random.shuffle(full_train_order)
 
-        nonevent_train_order = full_train_order[:config.batch_size * 500]
-        event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=500)
-        train_order = nonevent_train_order + event_train_order
+        # TODO: update partition of event period and nonevent period
+        # nonevent_train_order = full_train_order[:config.batch_size * 0]
+        event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=1000)
+        # train_order = nonevent_train_order + event_train_order
+        train_order = event_train_order
         random.shuffle(train_order)
 
         all_loss = np.zeros(3)
@@ -1098,7 +1102,7 @@ class Query_Comb_Controller(Controller):
                 )
 
                 state = self.sess.run(
-                    self.model.net_rnn_seq2seq.final_state_encode,
+                    self.model.test_seq2seq_rnn.final_state_encode,
                     feed_dict={
                         self.model.x_root: x_root,
                     })
@@ -1109,10 +1113,10 @@ class Query_Comb_Controller(Controller):
                 statelist = list()
                 for _ in range(config.out_seq_length):  # max sentence length
                     spred, state = self.sess.run([
-                        self.model.net_out_seq2seq.outputs,
-                        self.model.net_rnn_seq2seq.final_state_decode],
+                        self.model.test_seq2seq_out.outputs,
+                        self.model.test_seq2seq_rnn.final_state_decode],
                         feed_dict={
-                            self.model.net_rnn_seq2seq.initial_state_decode: state,
+                            self.model.test_seq2seq_rnn.initial_state_decode: state,
                             self.model.decode_seqs_test: spred,
                         })
                     spredlist.append(spred)
@@ -1167,14 +1171,6 @@ class Query_Comb_Controller(Controller):
         return all_loss, time_loss, pathpred
 
     def controller_train(self, tepoch=config.epoch):
-        '''
-        tl.files.load_and_assign_npz_dict(name=config.model_path + "seq2seq_model/91.npz", sess=self.sess)
-        self.save_model(
-            path=self.model_save_dir,
-            global_step=0
-        )
-        return
-        '''
 
         # root_data, pathlist  = dataloader.load_data_all()
         root_data, neighbour_data, pathlist  = dataloader.load_data(5, 5)
@@ -1192,7 +1188,8 @@ class Query_Comb_Controller(Controller):
                 global_step=last_save_epoch
             )
         else:
-            self.restore_model(
+            tl.files.load_and_assign_npz_dict(name=config.model_path + "seq2seq_model/91.npz", sess=self.sess)
+            self.save_model(
                 path=self.model_save_dir,
                 global_step=0
             )
@@ -1222,7 +1219,11 @@ class Query_Comb_Controller(Controller):
 
             global_epoch += 1
 
-    def controller_test(self):
+        logger_test = log.Logger(columns=["mapev"] + list(range(15, 121, 15)))
+        self.__test__(global_epoch, root_data[:, -config.valid_length:, :], query_data, logger_test, pathlist, test_interval=1)
+        logger_test.save(self.log_save_dir + config.global_start_time + "_test_full.csv")
+
+    def controller_test(self, restore=True):
         # root_data,pathlist  = dataloader.load_data_all()
         root_data, neighbour_data, pathlist  = dataloader.load_data(5, 5)
         del neighbour_data
@@ -1245,6 +1246,312 @@ class Query_Comb_Controller(Controller):
 
         logger_test.save(self.log_save_dir + config.global_start_time + "_test.csv")
 
+class All_Comb_Controller(Controller):
+
+    def __train__(self, epoch, root_data, neighbour_data, features_info, features_time, query_data, event_filter_allpath, logger, pathlist):
+
+        each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
+        total_batch_size = root_data.shape[0] * each_num_seq
+        full_train_order = list(range(total_batch_size))
+        random.shuffle(full_train_order)
+
+        # stage 1 then stage 2
+        if epoch < config.all_model_stage_epoch:
+            nonevent_train_order = full_train_order[:config.batch_size * 1000]
+            train_order = nonevent_train_order
+        else:
+            event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=1000)
+            train_order = event_train_order
+        random.shuffle(train_order)
+
+        all_loss = np.zeros(3)
+
+        start_time = time.time()
+        step_time = time.time()
+        train_steps = len(train_order) // config.batch_size
+
+        for cstep in range(train_steps):
+
+            x_root, x_neigh, x_features, decode_seq, target_seq, x_query, decode_query = dataloader.get_minibatch_all_comb(
+                root_data,
+                neighbour_data,
+                features_info,
+                features_time,
+                query_data,
+                pathlist,
+                order=train_order[cstep * config.batch_size : (cstep + 1) * config.batch_size],
+                num_seq=each_num_seq
+            )
+
+
+            if epoch < config.all_model_stage_epoch:
+
+                global_step = cstep + epoch * train_steps
+
+                results = self.sess.run([
+                    self.model.train_loss_base,
+                    self.model.nmse_train_noend_base,
+                    self.model.mape_train_noend_base,
+                    self.model.learning_rate,
+                    self.model.optim_base],
+                    feed_dict={
+                        self.model.x_root: x_root,
+                        self.model.x_neighbour: x_neigh,
+                        self.model.features: x_features,
+                        self.model.decode_seqs: decode_seq,
+                        self.model.target_seqs: target_seq,
+                        self.model.query_x: x_query,
+                        self.model.query_decode_seq: decode_query[:, 1:, :],
+                        self.model.global_step: global_step,
+                    })
+            else:
+
+                global_step = cstep + (epoch - config.all_model_stage_epoch) * train_steps
+
+                results = self.sess.run([
+                    self.model.train_loss_query,
+                    self.model.nmse_train_noend_query,
+                    self.model.mape_train_noend_query,
+                    self.model.learning_rate,
+                    self.model.optim_query],
+                    feed_dict={
+                        self.model.x_root: x_root,
+                        self.model.x_neighbour: x_neigh,
+                        self.model.features: x_features,
+                        self.model.decode_seqs: decode_seq,
+                        self.model.target_seqs: target_seq,
+                        self.model.query_x: x_query,
+                        self.model.query_decode_seq: decode_query[:, 1:, :],
+                        self.model.global_step: global_step,
+                    })
+
+            all_loss += np.array(results[:-2])
+
+            if cstep % 100 == 0 and cstep > 0:
+                print(
+                    "[Train %s] Epoch: [%3d][%4d/%4d] time: %.4f, lr: %.8f, loss: %s" %
+                    ("base" if epoch < config.all_model_stage_epoch else "query", epoch, cstep, train_steps, time.time() - step_time, results[-2], all_loss / (cstep + 1))
+                )
+                step_time = time.time()
+                logger.add_log(global_step, all_loss / (cstep + 1))
+
+        print(
+            "[Train %s Sum] Epoch: [%3d] time: %.4f, lr: %.8f, loss: %s" %
+            ("base" if epoch < config.all_model_stage_epoch else "query", epoch, time.time() - start_time, results[-2], all_loss / train_steps)
+        )
+        logger.add_log(global_step, all_loss / train_steps)
+
+        return all_loss
+
+    def __test__(self, epoch, root_data, neighbour_data, features_info, features_time, query_data, logger, pathlist, test_interval=10):
+
+        each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
+        total_batch_size = root_data.shape[0] * each_num_seq
+        train_order = list(range(total_batch_size))
+
+        all_loss = np.zeros(1)
+        time_loss = np.zeros(config.out_seq_length)
+
+        start_time = time.time()
+        step_time = time.time()
+
+        round = 0
+        pathpred = list()
+        for path in range(0, root_data.shape[0], test_interval):
+            predlist = list()
+            step_time = time.time()
+            for cstep in range(each_num_seq // config.batch_size):
+                round += 1
+
+                x_root, x_neigh, x_features, decode_seq, target_seq, x_query, decode_query = dataloader.get_minibatch_4_test_all_comb(
+                    root_data,
+                    neighbour_data,
+                    features_info,
+                    features_time,
+                    query_data,
+                    path,
+                    pathlist,
+                    cstep
+                )
+
+                state = self.sess.run(
+                    self.model.test_net_rnn_base.final_state_encode,
+                    feed_dict={
+                        self.model.x_root: x_root,
+                        self.model.x_neighbour: x_neigh,
+                        self.model.features: x_features
+                    })
+
+                spred = decode_seq[:, 0:1, :]
+
+                spredlist = list()
+                statelist = list()
+                for _ in range(config.out_seq_length):  # max sentence length
+                    spred, state = self.sess.run([
+                        self.model.test_net_base.outputs,
+                        self.model.test_net_rnn_base.final_state_decode],
+                        feed_dict={
+                            self.model.test_net_rnn_base.initial_state_decode: state,
+                            self.model.decode_seqs_test: spred,
+                            self.model.features: x_features,
+                            self.model.features_test: x_features[:, _:_+1 ,:]
+                        })
+                    spredlist.append(spred)
+                    statelist.append(state[1])  # LSTMStateTuple (cell_state, hidden_state)
+
+                if epoch < config.all_model_stage_epoch:
+                    basepred = np.concatenate(spredlist, axis=1)
+                    mapeloss = utils.mape(basepred, target_seq[:, :-1, :])
+                    predlist.append(basepred)
+                else:
+                    traffic_state = np.stack(statelist, axis=0)
+                    traffic_state = np.swapaxes(traffic_state, axis1=0, axis2=1)
+                    traffic_state = np.reshape(traffic_state, (config.batch_size * config.out_seq_length, config.dim_hidden))
+
+                    newpred = self.sess.run(
+                        self.model.test_net_query.outputs,
+                        feed_dict={
+                            self.model.traffic_state: traffic_state,
+                            self.model.query_decode_seq: decode_query[:, 1:, :],
+                            self.model.features: x_features,
+                            self.model.features_test: x_features[:, _:_+1 ,:]
+                        })
+
+                    mapeloss = utils.mape(newpred, target_seq[:, :-1, :])
+                    predlist.append(newpred)
+
+                all_loss += np.mean(mapeloss)
+                time_loss += np.mean(mapeloss[:, :, 0], axis=0)
+
+            predlist = np.concatenate(predlist, axis=0)
+            pathpred.append(predlist)
+
+            if path % 500 == 0:
+                print(
+                    "[Test %s] Epoch: [%3d][%5d/%5d] time: %.4f, loss: %s, tloss: %s" %
+                    ("base" if epoch < config.all_model_stage_epoch else "query", epoch, path, root_data.shape[0], time.time() - step_time, all_loss / round, time_loss / round)
+                )
+
+                tmppathpred = np.stack(pathpred, axis=0)
+
+                savedir = config.result_path + self.model.model_name + "/"
+                if not os.path.exists(savedir):
+                    os.makedirs(savedir)
+                np.savez(savedir + "%d_test" % (epoch), pred=tmppathpred)
+
+            logger.add_log("%d_%s" % (epoch, pathlist[path]), list(all_loss / round) + list(time_loss / round))
+
+        pathpred = np.stack(pathpred, axis=0)
+        savedir = config.result_path + self.model.model_name + "/"
+        if not os.path.exists(savedir):
+            os.makedirs(savedir)
+        np.savez(savedir + "%d_test" % (epoch), pred=pathpred)
+
+
+        print(
+            "[Test %s Sum] Epoch [%3d]: time: %.4f, loss: %s, tloss: %s" %
+            ("base" if epoch < config.all_model_stage_epoch else "query", epoch, time.time() - start_time, all_loss / round, time_loss / round)
+        )
+
+        return all_loss, time_loss, pathpred
+
+    def controller_train(self, tepoch=config.epoch):
+
+        # root_data, pathlist  = dataloader.load_data_all()
+        root_data, neighbour_data, pathlist  = dataloader.load_data(5, 5)
+        features_info, features_time, features_pathlist = dataloader.load_features(pathlist)
+        query_data = dataloader.get_query_data()
+        event_data = dataloader.load_event_data()
+        event_filter_allpath = dataloader.get_event_filter_allpath(event_data, pathlist)
+
+        last_save_epoch = self.base_epoch
+        global_epoch = self.base_epoch + 1
+
+        if last_save_epoch >= 0:
+            self.restore_model(
+                path=self.model_save_dir,
+                global_step=last_save_epoch
+            )
+
+        logger_train = log.Logger(columns=["loss", "nmse_train", "mape" ])
+        # logger_valid = log.Logger(columns=["mae_copy", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"])
+        logger_test = log.Logger(columns=["mapev"] + list(range(15, 121, 15)))
+
+        for epoch in range(tepoch + 1):
+
+            self.__train__(
+                global_epoch,
+                root_data[:, :-config.valid_length, :],
+                neighbour_data[:, :-config.valid_length, :],
+                features_info, features_time,
+                query_data, event_filter_allpath,
+                logger_train, pathlist
+            )
+
+            if epoch % config.test_p_epoch == 0:
+                # self.__valid__(global_epoch, root_data[:, -config.valid_length:, :], logger_valid)
+                self.__test__(
+                    global_epoch,
+                    root_data[:, -config.valid_length:, :],
+                    neighbour_data[:, -config.valid_length:, :],
+                    features_info, features_time,
+                    query_data,
+                    logger_test, pathlist, test_interval=50
+                )
+
+            if global_epoch > self.base_epoch and global_epoch % config.save_p_epoch == 0:
+                self.save_model(
+                    path=self.model_save_dir,
+                    global_step=global_epoch
+                )
+                last_save_epoch = global_epoch
+
+            logger_train.save(self.log_save_dir + config.global_start_time + "_train.csv")
+            # logger_valid.save(self.log_save_dir + config.global_start_time + "_valid.csv")
+            logger_test.save(self.log_save_dir + config.global_start_time + "_test.csv")
+
+            global_epoch += 1
+
+        logger_test = log.Logger(columns=["mapev"] + list(range(15, 121, 15)))
+        self.__test__(
+            global_epoch,
+            root_data[:, -config.valid_length:, :],
+            neighbour_data[:, -config.valid_length:, :],
+            features_info, features_time,
+            query_data,
+            logger_test, pathlist, test_interval=1
+        )
+        logger_test.save(self.log_save_dir + config.global_start_time + "_test_full.csv")
+
+    def controller_test(self, restore=True):
+        # root_data,pathlist  = dataloader.load_data_all()
+        root_data, neighbour_data, pathlist  = dataloader.load_data(5, 5)
+        # event_data = dataloader.load_event_data()
+        features_info, features_time, features_pathlist = dataloader.load_features(pathlist)
+        query_data = dataloader.get_query_data()
+
+        last_save_epoch = self.base_epoch
+        global_epoch = self.base_epoch + 1
+
+        assert last_save_epoch >= 0
+        self.restore_model(
+            path=self.model_save_dir,
+            global_step=last_save_epoch
+        )
+
+        logger_test = log.Logger(columns=["mapev"] + list(range(15, 121, 15)))
+
+        self.__test__(
+            global_epoch,
+            root_data[:, -config.valid_length:, :],
+            neighbour_data[:, -config.valid_length:, :],
+            features_info, features_time,
+            query_data,
+            logger_test, pathlist, test_interval=1
+        )
+        # self.__test_event__(global_epoch, root_data[:, -config.valid_length:, :], event_data, logger_test, pathlist, test_interval=1)
+
+        logger_test.save(self.log_save_dir + config.global_start_time + "_test.csv")
 
 if __name__ == "__main__":
     '''
@@ -1305,15 +1612,30 @@ if __name__ == "__main__":
         ctl.sess.close()
     '''
 
+    '''
     with tf.Graph().as_default() as graph:
         tl.layers.clear_layers_name()
         mdl = model.Query_Comb_Model(
-            model_name="query_comb_model",
+            model_name="query_comb_model_%d" % config.impact_k,
             start_learning_rate=0.001,
-            decay_steps=2e4,
+            decay_steps=1e4,
             decay_rate=0.8
         )
-        ctl = Query_Comb_Controller(model=mdl, base_epoch=50)
+        ctl = Query_Comb_Controller(model=mdl, base_epoch=20)
         ctl.controller_train()
+        # ctl.controller_test()
+        ctl.sess.close()
+    '''
+
+    with tf.Graph().as_default() as graph:
+        tl.layers.clear_layers_name()
+        mdl = model.All_Comb_Model(
+            model_name="all_comb_model_%d" % config.impact_k,
+            start_learning_rate=0.001,
+            decay_steps=1e4,
+            decay_rate=0.8
+        )
+        ctl = All_Comb_Controller(model=mdl, base_epoch=-1)
+        ctl.controller_train(tepoch=config.epoch * 2)
         # ctl.controller_test()
         ctl.sess.close()

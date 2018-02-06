@@ -284,6 +284,52 @@ def get_minibatch_all_query(root_data, query_data, pathlist, order, num_seq):
 
     return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq, minibatch_query_x, minibatch_decode_seq_query
 
+def get_minibatch_all_comb(root_data, neighbour_data, features_info, features_time, query_data, pathlist, order, num_seq):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_query_x = list()
+    minibatch_query_y = list()
+    minibatch_x_neighbour = list()
+    minibatch_features = list()
+
+    for o in order:
+        seq_id = o // num_seq
+        seq_loc = o % num_seq
+        minibatch_x_root.append(root_data[seq_id, seq_loc : seq_loc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_query_x.append(query_data[pathlist[seq_id]][seq_loc : seq_loc + config.in_seq_length, :])
+        minibatch_query_y.append(query_data[pathlist[seq_id]][seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_x_neighbour.append(neighbour_data[seq_id, seq_loc : seq_loc + config.in_seq_length, :])
+
+        f = np.zeros([config.out_seq_length + 1, config.dim_features])
+        for fi in range(config.out_seq_length):
+            f[fi, :config.dim_features_info] = features_info[seq_id, :]
+            f[fi, -config.dim_features_time:] = features_time[seq_loc + config.in_seq_length + fi, :]
+        minibatch_features.append(f)
+
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    minibatch_query_x = np.stack(minibatch_query_x)
+    minibatch_query_y = np.stack(minibatch_query_y)
+    minibatch_x_neighbour = np.stack(minibatch_x_neighbour)
+    minibatch_features = np.stack(minibatch_features)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_decode_seq_query = np.zeros((minibatch_query_y.shape[0], minibatch_query_y.shape[1] + 1, minibatch_query_y.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+    minibatch_decode_seq_query[:, 1: ,:] = minibatch_query_y
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+    minibatch_decode_seq_query[:, 0, :] = config.start_id
+
+    return minibatch_x_root, minibatch_x_neighbour, minibatch_features, minibatch_decode_seq, minibatch_target_seq, minibatch_query_x, minibatch_decode_seq_query
+
+
 def get_minibatch_4_test_query(root_data, query_data, path, pathlist, cstep):
     minibatch_x_root = list()
     minibatch_y_root = list()
@@ -315,6 +361,50 @@ def get_minibatch_4_test_query(root_data, query_data, path, pathlist, cstep):
     minibatch_decode_seq_query[:, 0, :] = config.start_id
 
     return minibatch_x_root, minibatch_decode_seq, minibatch_target_seq, minibatch_query_x, minibatch_decode_seq_query
+
+def get_minibatch_4_test_all_comb(root_data, neighbour_data, features_info, features_time, query_data, path, pathlist, cstep):
+    minibatch_x_root = list()
+    minibatch_y_root = list()
+    minibatch_query_x = list()
+    minibatch_query_y = list()
+    minibatch_x_neighbour = list()
+    minibatch_features = list()
+
+    for o in range(config.batch_size):
+        baseloc = o + cstep * config.batch_size
+        minibatch_x_root.append(root_data[path, baseloc : baseloc + config.in_seq_length, :])
+        minibatch_y_root.append(root_data[path, baseloc + config.in_seq_length : baseloc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_query_x.append(query_data[pathlist[path]][baseloc : baseloc + config.in_seq_length, :])
+        minibatch_query_y.append(query_data[pathlist[path]][baseloc + config.in_seq_length : baseloc + config.in_seq_length + config.out_seq_length, :])
+        minibatch_x_neighbour.append(neighbour_data[path, baseloc : baseloc + config.in_seq_length, :])
+
+        f = np.zeros([config.out_seq_length + 1, config.dim_features])
+        for fi in range(config.out_seq_length):
+            f[fi, :config.dim_features_info] = features_info[path, :]
+            f[fi, -config.dim_features_time:] = features_time[-config.valid_length + baseloc + config.in_seq_length + fi, :]
+        minibatch_features.append(f)
+
+
+    minibatch_x_root = np.stack(minibatch_x_root)
+    minibatch_y_root = np.stack(minibatch_y_root)
+    minibatch_query_x = np.stack(minibatch_query_x)
+    minibatch_query_y = np.stack(minibatch_query_y)
+    minibatch_x_neighbour = np.stack(minibatch_x_neighbour)
+    minibatch_features = np.stack(minibatch_features)
+
+    minibatch_decode_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_target_seq = np.zeros((minibatch_y_root.shape[0], minibatch_y_root.shape[1] + 1, minibatch_y_root.shape[2]))
+    minibatch_decode_seq_query = np.zeros((minibatch_query_y.shape[0], minibatch_query_y.shape[1] + 1, minibatch_query_y.shape[2]))
+
+    minibatch_decode_seq[:, 1: ,:] = minibatch_y_root
+    minibatch_target_seq[:, :-1 ,:] = minibatch_y_root
+    minibatch_decode_seq_query[:, 1: ,:] = minibatch_query_y
+
+    minibatch_decode_seq[:, 0, :] = config.start_id
+    minibatch_target_seq[:, -1, :] = config.end_id
+    minibatch_decode_seq_query[:, 0, :] = config.start_id
+
+    return minibatch_x_root, minibatch_x_neighbour, minibatch_features, minibatch_decode_seq, minibatch_target_seq, minibatch_query_x, minibatch_decode_seq_query
 
 def get_minibatch_features(root_data, features_info, features_time, order, num_seq):
     minibatch_x_root = list()
@@ -578,8 +668,8 @@ def load_event_data():
     return event_period
 
 def get_query_data():
-    print("Loading Query...")
-    data = pickle.load(open(config.data_path + "query_distribution_beijing_1km_k_%d.pkl" % config.impact_k, "rb"), encoding='latin1')
+    print("Loading Query %d..." % config.impact_k)
+    data = pickle.load(open(config.data_path + "query_distribution_beijing_1km_k_%d_filtfilt.pkl" % config.impact_k, "rb"), encoding='latin1')
     for node in data:
         data[node] = np.expand_dims(np.array(data[node]), axis=1)
         assert data[node].shape[0] == config.full_length

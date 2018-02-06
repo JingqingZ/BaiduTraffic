@@ -451,14 +451,29 @@ class Query_Comb_Model(Query_Model):
             name="traffic_state"
         )
 
+    def __create_training_op__(self):
+        self.learning_rate = tf.train.exponential_decay(
+            learning_rate=self.start_learning_rate,
+            global_step=self.global_step,
+            decay_steps=self.decay_steps,
+            decay_rate=self.decay_rate,
+            staircase=True,
+            name="learning_rate"
+        )
+        all_model_vars = tl.layers.get_variables_with_name(self.model_name)
+        self.optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+            .minimize(self.train_loss, var_list=all_model_vars)
+        # self.optim = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+        #     .minimize(self.train_loss, var_list=all_vars)
+
     def __create_model__(self):
-        self.train_net = self.__get_network__(
+        self.train_seq2seq_rnn, self.train_seq2seq_out, self.train_net = self.__get_network__(
             self.x_root,
             self.decode_seqs,
             is_train=True,
             reuse=False,
         )
-        self.test_net = self.__get_network__(
+        self.test_seq2seq_rnn, self.test_seq2seq_out, self.test_net = self.__get_network__(
             self.x_root,
             self.decode_seqs_test,
             is_train=False,
@@ -478,7 +493,6 @@ class Query_Comb_Model(Query_Model):
             tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1])
         )
         self.train_loss = self.nmse_train_noend
-
 
     def __get_network__(self, encode_seq, decode_seq, is_train=True, reuse=False):
         w_init = tf.random_normal_initializer(stddev=0.02)
@@ -504,7 +518,8 @@ class Query_Comb_Model(Query_Model):
                 return_seq_2d=True,
                 name='seq2seq'
             )
-            self.net_rnn_seq2seq = net_rnn
+            # self.net_rnn_seq2seq = net_rnn
+            net_rnn_seq2seq = net_rnn
 
             net_out_seq2seq = DenseLayer(net_rnn, n_units=1, act=tf.identity, name='dense2')
             if is_train:
@@ -512,7 +527,7 @@ class Query_Comb_Model(Query_Model):
             else:
                 net_out_seq2seq = ReshapeLayer(net_out_seq2seq, (config.batch_size, 1, 1), name="reshape_out")
 
-            self.net_out_seq2seq = net_out_seq2seq
+            net_out_seq2seq = net_out_seq2seq
             # net_out = DenseLayer(net_rnn, n_units=64, act=tf.identity, name='dense1')
             # net_out = DenseLayer(net_rnn, n_units=1, act=tf.identity, name='dense2')
             # net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
@@ -540,7 +555,7 @@ class Query_Comb_Model(Query_Model):
             net_traffic_state = InputLayer(self.traffic_state, name="in_traffic_state")
 
             if is_train:
-                net_rnn_traffic = ReshapeLayer(self.net_rnn_seq2seq, (config.batch_size, config.out_seq_length + 1, config.dim_hidden), name="reshape_traffic_q1")
+                net_rnn_traffic = ReshapeLayer(net_rnn_seq2seq, (config.batch_size, config.out_seq_length + 1, config.dim_hidden), name="reshape_traffic_q1")
                 net_rnn_traffic.outputs = tf.slice(net_rnn_traffic.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, config.dim_hidden], name="slice_traffic_q")
                 net_rnn_traffic = ReshapeLayer(net_rnn_traffic, (config.batch_size * config.out_seq_length, config.dim_hidden), name="reshape_traffic_q2")
                 net_out = ConcatLayer([net_rnn_traffic, net_rnn_query], concat_dim=-1, name="concat_traffic_query1")
@@ -548,15 +563,213 @@ class Query_Comb_Model(Query_Model):
                 net_out = ConcatLayer([net_traffic_state, net_rnn_query], concat_dim=-1, name="concat_traffic_query2")
 
             net_out = DenseLayer(net_out, n_units=128, act=tf.nn.relu, name="dense_query1")
-            net_out = DenseLayer(net_out, n_units=32, act=tf.nn.relu, name="dense_query2")
+            net_out = DenseLayer(net_out, n_units=64, act=tf.nn.relu, name="dense_query2")
             net_out = DenseLayer(net_out, n_units=1, act=tf.identity, name="dense_query3")
             # net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
             # if is_train:
             net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length, 1), name="reshape_out")
             # else:
             #    net_out = ReshapeLayer(net_out, (config.batch_size, 1, 1), name="reshape_out")
-        return net_out
+        return net_rnn_seq2seq, net_out_seq2seq, net_out
 
+class All_Comb_Model(Query_Comb_Model):
+
+    def __init__(
+            self,
+            *args,
+            **kwargs
+    ):
+        self.__create_placeholders_for_features__()
+        super(All_Comb_Model, self).__init__(*args, **kwargs)
+
+    def __create_model__(self):
+        self.train_net_rnn_base, self.train_net_base, self.train_net_rnn_query, self.train_net_query = self.__get_network__(
+            self.x_root,
+            self.x_neighbour,
+            self.decode_seqs,
+            self.features,
+            self.features,
+            is_train=True,
+            reuse=False,
+        )
+        self.test_net_rnn_base, self.test_net_base, self.test_net_rnn_query, self.test_net_query = self.__get_network__(
+            self.x_root,
+            self.x_neighbour,
+            self.decode_seqs_test,
+            self.features_test,
+            self.features,
+            is_train=False,
+            reuse=True,
+        )
+        self.train_net_query.print_params(False)
+        self.train_net_query.print_layers()
+
+    def __create_loss__(self):
+        # train loss for base
+        self.nmse_train_base = tl.cost.normalized_mean_square_error(
+            tf.slice(self.train_net_base.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length + 1, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length + 1, 1])
+        )
+        self.nmse_train_noend_base = tl.cost.normalized_mean_square_error(
+            tf.slice(self.train_net_base.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1])
+        )
+        self.mape_train_noend_base = self.__get_mape__(
+            tf.slice(self.train_net_base.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1])
+        )
+        self.train_loss_base = self.nmse_train_base
+        # train loss for query
+        self.nmse_train_noend_query = tl.cost.normalized_mean_square_error(
+            tf.slice(self.train_net_query.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1])
+        )
+        self.mape_train_noend_query = self.__get_mape__(
+            tf.slice(self.train_net_query.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1]),
+            tf.slice(self.target_seqs, [0, 0, 0], [config.batch_size, config.out_seq_length, 1])
+        )
+        self.train_loss_query = self.nmse_train_noend_query
+
+    def __create_training_op__(self):
+        self.learning_rate = tf.train.exponential_decay(
+            learning_rate=self.start_learning_rate,
+            global_step=self.global_step,
+            decay_steps=self.decay_steps,
+            decay_rate=self.decay_rate,
+            staircase=True,
+            name="learning_rate"
+        )
+        all_base_vars = tl.layers.get_variables_with_name(self.model_name + "_base")
+        self.optim_base = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+            .minimize(self.train_loss_base, var_list=all_base_vars)
+        all_query_vars = tl.layers.get_variables_with_name(self.model_name + "_query")
+        self.optim_query = tf.train.AdamOptimizer(self.learning_rate, beta1=0.5) \
+            .minimize(self.train_loss_query, var_list=all_query_vars)
+
+
+    def __create_placeholders_for_features__(self):
+
+        self.features = tf.placeholder(
+            dtype=tf.float32,
+            shape=[config.batch_size, config.out_seq_length + 1, config.dim_features],
+            name='input_features'
+        )
+
+        self.features_test = tf.placeholder(
+            dtype=tf.float32,
+            shape=[config.batch_size, 1, config.dim_features],
+            name='input_features_test'
+        )
+
+    def __get_network__(self, encode_seq, neighbour_seq, decode_seq, features, features_full, is_train=True, reuse=False):
+        w_init = tf.random_normal_initializer(stddev=0.02)
+        g_init = tf.random_normal_initializer(1., 0.02)
+
+        with tf.variable_scope(self.model_name + "_base", reuse=reuse) as vs:
+            tl.layers.set_name_reuse(reuse)
+            inputs_x_root = InputLayer(encode_seq, name='in_root')
+            inputs_x_nbor = InputLayer(neighbour_seq, name="in_neighbour")
+
+            # encoding neighbour graph information
+            n = ReshapeLayer(inputs_x_nbor, (config.batch_size * config.in_seq_length, config.num_neighbour), "reshape1")
+            n.outputs = tf.expand_dims(n.outputs, axis=-1)
+            n = Conv1d(n, 4, 4, 1, act=tf.identity, padding='SAME', W_init=w_init, name='conv1')
+            n = BatchNormLayer(n, act=tf.nn.relu, is_train=is_train, gamma_init=g_init, name='bn1')
+            n = MaxPool1d(n, 2, 2, padding='valid', name='maxpool1')
+            n = FlattenLayer(n, name="flatten1")
+            n = ReshapeLayer(n, (config.batch_size, config.in_seq_length, -1), name="reshape1_back")
+
+            net_encode = ConcatLayer([inputs_x_root, n], concat_dim=-1, name="encode")
+            net_decode = InputLayer(decode_seq, name="decode")
+
+            net_rnn = Seq2Seq(
+                net_encode, net_decode,
+                cell_fn=tf.contrib.rnn.BasicLSTMCell,
+                n_hidden=config.dim_hidden,
+                initializer=tf.random_uniform_initializer(-0.1, 0.1),
+                encode_sequence_length=tl.layers.retrieve_seq_length_op(net_encode.outputs),
+                decode_sequence_length=tl.layers.retrieve_seq_length_op(net_decode.outputs),
+                initial_state_encode=None,
+                # dropout=(0.8 if is_train else None),
+                dropout=None,
+                n_layer=1,
+                return_seq_2d=True,
+                name='seq2seq'
+            )
+            net_rnn_seq2seq = net_rnn
+
+            # Features
+            net_features = InputLayer(features, name="in_features")
+            net_features_full = InputLayer(features_full, name="in_features_full")
+            net_features_full = ReshapeLayer(net_features_full, (config.batch_size * (config.out_seq_length + 1), config.dim_features), name="reshape_feature_full_1")
+            if is_train:
+                net_features = ReshapeLayer(net_features, (config.batch_size * (config.out_seq_length + 1), config.dim_features), name="reshape_feature_1")
+            else:
+                net_features = ReshapeLayer(net_features, (config.batch_size * (1), config.dim_features), name="reshape_feature_1")
+
+            self.net_features_dim = 32
+            net_features = DenseLayer(net_features, n_units=self.net_features_dim, act=tf.nn.relu, name='dense_features')
+            net_features_full = DenseLayer(net_features_full, n_units=self.net_features_dim, act=tf.nn.relu, name='dense_features_full')
+            # self.net_features = net_features
+
+            net_out_seq2seq = ConcatLayer([net_rnn, net_features], concat_dim=-1, name="concat_features")
+            net_out_seq2seq = DenseLayer(net_out_seq2seq, n_units=1, act=tf.identity, name='dense2')
+
+            if is_train:
+                net_out_seq2seq = ReshapeLayer(net_out_seq2seq, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
+            else:
+                net_out_seq2seq = ReshapeLayer(net_out_seq2seq, (config.batch_size, 1, 1), name="reshape_out")
+
+            # net_out = DenseLayer(net_rnn, n_units=64, act=tf.identity, name='dense1')
+            # net_out = DenseLayer(net_rnn, n_units=1, act=tf.identity, name='dense2')
+            # net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
+
+        with tf.variable_scope(self.model_name + "_query", reuse=reuse) as vs:
+            tl.layers.set_name_reuse(reuse)
+
+            net_decode_query = InputLayer(self.query_decode_seq, name="decode_query")
+
+            net_rnn_query = RNNLayer(
+                net_decode_query,
+                cell_fn=tf.contrib.rnn.BasicLSTMCell,
+                cell_init_args={"forget_bias": 1.0},
+                n_hidden=config.dim_hidden,
+                initializer=tf.random_uniform_initializer(-0.1, 0.1),
+                n_steps=config.out_seq_length,
+                return_last=False,
+                return_seq_2d=True,
+                name="rnn_query"
+            )
+
+            # self.net_rnn_query = net_rnn_query
+
+            net_traffic_state = InputLayer(self.traffic_state, name="in_traffic_state")
+
+            if is_train:
+                net_rnn_traffic = ReshapeLayer(net_rnn_seq2seq, (config.batch_size, config.out_seq_length + 1, config.dim_hidden), name="reshape_traffic_q1")
+                net_rnn_traffic.outputs = tf.slice(net_rnn_traffic.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, config.dim_hidden], name="slice_traffic_q")
+                net_rnn_traffic = ReshapeLayer(net_rnn_traffic, (config.batch_size * config.out_seq_length, config.dim_hidden), name="reshape_traffic_q2")
+
+                net_features_traffic = ReshapeLayer(net_features, (config.batch_size, config.out_seq_length + 1, self.net_features_dim), name="reshape_features_q1")
+                net_features_traffic.outputs = tf.slice(net_features_traffic.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, self.net_features_dim], name="slice_features_q")
+                net_features_traffic = ReshapeLayer(net_features_traffic, (config.batch_size * config.out_seq_length, self.net_features_dim), name="reshape_features_q2")
+
+                net_out = ConcatLayer([net_rnn_traffic, net_features_traffic, net_rnn_query], concat_dim=-1, name="concat_traffic_query1")
+            else:
+                net_features_traffic = ReshapeLayer(net_features_full, (config.batch_size, config.out_seq_length + 1, self.net_features_dim), name="reshape_features_q1")
+                net_features_traffic.outputs = tf.slice(net_features_traffic.outputs, [0, 0, 0], [config.batch_size, config.out_seq_length, self.net_features_dim], name="slice_features_q")
+                net_features_traffic = ReshapeLayer(net_features_traffic, (config.batch_size * config.out_seq_length, self.net_features_dim), name="reshape_features_q2")
+                net_out = ConcatLayer([net_traffic_state, net_features_traffic, net_rnn_query], concat_dim=-1, name="concat_traffic_query1")
+
+            net_out = DenseLayer(net_out, n_units=128, act=tf.nn.relu, name="dense_query1")
+            net_out = DenseLayer(net_out, n_units=64, act=tf.nn.relu, name="dense_query2")
+            net_out = DenseLayer(net_out, n_units=1, act=tf.identity, name="dense_query3")
+            # net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length + 1, 1), name="reshape_out")
+            # if is_train:
+            net_out = ReshapeLayer(net_out, (config.batch_size, config.out_seq_length, 1), name="reshape_out")
+            # else:
+            #    net_out = ReshapeLayer(net_out, (config.batch_size, 1, 1), name="reshape_out")
+        return net_rnn_seq2seq, net_out_seq2seq, net_rnn_query, net_out
 
 if __name__ == "__main__":
     '''
@@ -583,9 +796,17 @@ if __name__ == "__main__":
         decay_rate=0.8,
     )
     '''
+    '''
     model = Query_Comb_Model(
-        model_name="query_comb_model",
+        model_name="query_comb_model_%d" % config.impact_k,
         start_learning_rate=0.001,
         decay_steps=400,
+        decay_rate=0.8
+    )
+    '''
+    model = All_Comb_Model(
+        model_name="all_comb_model_%d" % config.impact_k,
+        start_learning_rate=0.001,
+        decay_steps=1e4,
         decay_rate=0.8
     )

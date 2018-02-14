@@ -3,7 +3,13 @@ batch_size      = 128
 in_seq_length   = 4 * 24
 out_seq_length  = 4 * 2
 num_neighbour   = 10
+
+# TODO update
 dim_hidden      = 128
+query_dim_hidden = 128
+# dim_hidden      = 64
+# query_dim_hidden = 32
+
 dim_features_info = 131
 dim_features_time = 6
 dim_features    = dim_features_info + dim_features_time
@@ -17,7 +23,7 @@ end_id          = 101
 
 epoch           = 100
 save_p_epoch    = 5
-test_p_epoch    = 10
+test_p_epoch    = 5
 
 data_path       = "../../data/"
 result_path     = "../results/"
@@ -35,8 +41,13 @@ np.set_printoptions(
     formatter={'float_kind': lambda x: "%.4f" % x}
 )
 
-impact_k        = 50
+impact_k        = 150
+# 150 epoch 20 for query_comb
+# 300 epoch 30 for query_comb
 
-all_model_stage_epoch = 100
+# all_model_stage_epoch = [100 + 1, 150 + 1]
+all_model_stage_epoch = [100 + 1, 130 + 1]
+# all_model_stage_epoch = [30 + 1, 40 + 1]
 
-gpu_memory      = 0.5
+gpu_memory      = 1
+

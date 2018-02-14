@@ -8,7 +8,7 @@ import numpy as np
 root_dir = "../../data/"
 query_distribution_beijing_1km_file = root_dir + "query_distribution_beijing_1km_k_{}.pkl"
 query_distribution_beijing_1km_filtfilt_file = root_dir + "query_distribution_beijing_1km_k_{}_filtfilt.pkl"
-impact_factor = 100
+impact_factor = 300
 
 print("loading query_distribution_beijing_1km_file ...")
 query_distribution = cPickle.load(open(query_distribution_beijing_1km_file.format(impact_factor), "rb"))

@@ -392,6 +392,22 @@ def analyse_event_link():
             if time[1] >= 61*96:
                 print(node)
 
+def test_combine():
+    B = 4
+    S = 3
+    H = 2
+    arr = np.random.randint(low=0, high=100, size=(B * S, H))
+    arr3d = np.reshape(arr, (B, S, H))
+    arrlist = list()
+    for s in range(S):
+        arrlist.append(arr3d[:, s, :])
+    arrlist = np.stack(arrlist, axis=0)
+    arrlist = np.swapaxes(arrlist, axis1=0, axis2=1)
+    arrlist = np.reshape(arrlist, (B * S, H))
+    print(arrlist == arr)
+    print(arr)
+    print(arr3d)
+    print(arrlist)
 
 
 if __name__ == "__main__":
@@ -403,6 +419,7 @@ if __name__ == "__main__":
     # compare_filt()
     # get_event_link()
     # analyse_event_link()
+    '''
     data = pickle.load(open(datapath + "query_distribution_beijing_1km_k_50.pkl", "rb"), encoding='latin1')
     # data = np.load(config.result_path + "seq2seq_model/91_test.npz")
     # data = data["pred"]
@@ -410,3 +427,5 @@ if __name__ == "__main__":
     for node in data:
         print(data[node].shape)
         exit()
+    '''
+    test_combine()

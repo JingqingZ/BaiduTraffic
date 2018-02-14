@@ -523,6 +523,7 @@ class Seq2Seq_Controller(Controller):
                 global_step=last_save_epoch
             )
             # tl.files.save_npz_dict(self.model.train_net.all_params, name=self.model_save_dir + "%d.npz" % global_epoch, sess=self.sess)
+            # return
 
         # logger_train = log.Logger(columns=["mae_copy", "loss", "nmse_train", "nmse", "mse", "mae", "mape", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"])
         logger_train = log.Logger(columns=["mae_copy", "loss", "nmse_train", "nmse", "mse", "mae", "mape"])
@@ -1015,7 +1016,6 @@ class Query_Comb_Controller(Controller):
         full_train_order = list(range(total_batch_size))
         random.shuffle(full_train_order)
 
-        # TODO: update partition of event period and nonevent period
         # nonevent_train_order = full_train_order[:config.batch_size * 0]
         event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=1000)
         # train_order = nonevent_train_order + event_train_order
@@ -1188,7 +1188,7 @@ class Query_Comb_Controller(Controller):
                 global_step=last_save_epoch
             )
         else:
-            tl.files.load_and_assign_npz_dict(name=config.model_path + "seq2seq_model/91.npz", sess=self.sess)
+            tl.files.load_and_assign_npz_dict(name=config.model_path + "seq2seq_model/101.npz", sess=self.sess)
             self.save_model(
                 path=self.model_save_dir,
                 global_step=0
@@ -1255,13 +1255,17 @@ class All_Comb_Controller(Controller):
         full_train_order = list(range(total_batch_size))
         random.shuffle(full_train_order)
 
-        # stage 1 then stage 2
-        if epoch < config.all_model_stage_epoch:
+        if epoch < config.all_model_stage_epoch[1]:
             nonevent_train_order = full_train_order[:config.batch_size * 1000]
             train_order = nonevent_train_order
         else:
-            event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=1000)
-            train_order = event_train_order
+            if epoch < config.all_model_stage_epoch[1] + 10:
+                nonevent_train_order = full_train_order[:config.batch_size * 500]
+                event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=500)
+                train_order = nonevent_train_order + event_train_order
+            else:
+                event_train_order = dataloader.get_event_orders(event_filter_allpath, full_train_order, each_num_seq, tsteps=2000)
+                train_order = event_train_order
         random.shuffle(train_order)
 
         all_loss = np.zeros(3)
@@ -1284,16 +1288,16 @@ class All_Comb_Controller(Controller):
             )
 
 
-            if epoch < config.all_model_stage_epoch:
-
+            if epoch < config.all_model_stage_epoch[0]:
+                stagestr = "spatial"
                 global_step = cstep + epoch * train_steps
 
                 results = self.sess.run([
-                    self.model.train_loss_base,
-                    self.model.nmse_train_noend_base,
-                    self.model.mape_train_noend_base,
+                    self.model.train_loss_spatial,
+                    self.model.nmse_train_noend_spatial,
+                    self.model.mape_train_noend_spatial,
                     self.model.learning_rate,
-                    self.model.optim_base],
+                    self.model.optim_spatial],
                     feed_dict={
                         self.model.x_root: x_root,
                         self.model.x_neighbour: x_neigh,
@@ -1304,10 +1308,87 @@ class All_Comb_Controller(Controller):
                         self.model.query_decode_seq: decode_query[:, 1:, :],
                         self.model.global_step: global_step,
                     })
+
+            elif epoch < config.all_model_stage_epoch[1]:
+                stagestr = "wide"
+                global_step = cstep + (epoch - config.all_model_stage_epoch[0]) * train_steps
+
+                results = self.sess.run([
+                    self.model.train_loss_wide,
+                    self.model.nmse_train_noend_wide,
+                    self.model.mape_train_noend_wide,
+                    self.model.learning_rate,
+                    self.model.optim_wide],
+                    feed_dict={
+                        self.model.x_root: x_root,
+                        self.model.x_neighbour: x_neigh,
+                        self.model.features: x_features,
+                        self.model.decode_seqs: decode_seq,
+                        self.model.target_seqs: target_seq,
+                        self.model.query_x: x_query,
+                        self.model.query_decode_seq: decode_query[:, 1:, :],
+                        self.model.global_step: global_step,
+                    })
+
             else:
+                stagestr = "query"
+                global_step = cstep + (epoch - config.all_model_stage_epoch[1]) * train_steps
 
-                global_step = cstep + (epoch - config.all_model_stage_epoch) * train_steps
+                state = self.sess.run(
+                    self.model.test_net_seq2seq.final_state_encode,
+                    feed_dict={
+                        self.model.x_root: x_root,
+                        self.model.x_neighbour: x_neigh,
+                        self.model.features: x_features
+                    })
 
+                spred = decode_seq[:, 0:1, :]
+
+                spredlist = list()
+                statelist = list()
+
+                for _ in range(config.out_seq_length):  # max sentence length
+                    spred, state = self.sess.run([
+                        self.model.test_net_wide.outputs,
+                        self.model.test_net_seq2seq.final_state_decode],
+                        feed_dict={
+                            self.model.test_net_seq2seq.initial_state_decode: state,
+                            self.model.decode_seqs_test: spred,
+                            self.model.features: x_features,
+                            self.model.features_test: x_features[:, _:_+1 ,:]
+                        })
+                    spredlist.append(spred)
+                    statelist.append(state[1])  # LSTMStateTuple (cell_state, hidden_state)
+
+                basepred = np.concatenate(spredlist, axis=1)
+
+                traffic_state = np.stack(statelist, axis=0)
+                traffic_state = np.swapaxes(traffic_state, axis1=0, axis2=1)
+                assert traffic_state.shape == (config.batch_size, config.out_seq_length, config.dim_hidden)
+                traffic_state = np.reshape(traffic_state, (config.batch_size * config.out_seq_length, config.dim_hidden))
+
+                results = self.sess.run([
+                    # self.model.test_net_query.outputs,
+                    self.model.train_loss_query,
+                    self.model.nmse_train_noend_query,
+                    self.model.mape_train_noend_query,
+                    self.model.learning_rate,
+                    self.model.optim_query],
+                    feed_dict={
+                        self.model.x_root: x_root,
+                        self.model.x_neighbour: x_neigh,
+                        self.model.traffic_state: traffic_state,
+                        self.model.query_decode_seq: decode_query[:, 1:, :],
+                        self.model.features: x_features,
+                        self.model.base_pred: basepred, # TODO residual net
+                        self.model.decode_seqs: decode_seq,
+                        self.model.target_seqs: target_seq,
+                        self.model.query_x: x_query,
+                        self.model.global_step: global_step,
+                        # self.model.features_test: x_features[:, _:_+1 ,:]
+                    })
+
+                '''
                 results = self.sess.run([
                     self.model.train_loss_query,
                     self.model.nmse_train_noend_query,
@@ -1324,26 +1405,34 @@ class All_Comb_Controller(Controller):
                         self.model.query_decode_seq: decode_query[:, 1:, :],
                         self.model.global_step: global_step,
                     })
+                '''
 
             all_loss += np.array(results[:-2])
 
             if cstep % 100 == 0 and cstep > 0:
                 print(
                     "[Train %s] Epoch: [%3d][%4d/%4d] time: %.4f, lr: %.8f, loss: %s" %
-                    ("base" if epoch < config.all_model_stage_epoch else "query", epoch, cstep, train_steps, time.time() - step_time, results[-2], all_loss / (cstep + 1))
+                    (stagestr, epoch, cstep, train_steps, time.time() - step_time, results[-2], all_loss / (cstep + 1))
                 )
                 step_time = time.time()
                 logger.add_log(global_step, all_loss / (cstep + 1))
 
         print(
             "[Train %s Sum] Epoch: [%3d] time: %.4f, lr: %.8f, loss: %s" %
-            ("base" if epoch < config.all_model_stage_epoch else "query", epoch, time.time() - start_time, results[-2], all_loss / train_steps)
+            (stagestr, epoch, time.time() - start_time, results[-2], all_loss / train_steps)
         )
         logger.add_log(global_step, all_loss / train_steps)
 
         return all_loss
 
     def __test__(self, epoch, root_data, neighbour_data, features_info, features_time, query_data, logger, pathlist, test_interval=10):
+        stagestr = "null"
+        if epoch < config.all_model_stage_epoch[0]:
+            stagestr = "spatial"
+        elif epoch < config.all_model_stage_epoch[1]:
+            stagestr = "wide"
+        else:
+            stagestr = "query"
 
         each_num_seq = root_data.shape[1] - (config.in_seq_length + config.out_seq_length) + 1
         total_batch_size = root_data.shape[0] * each_num_seq
@@ -1375,7 +1464,7 @@ class All_Comb_Controller(Controller):
                 )
 
                 state = self.sess.run(
-                    self.model.test_net_rnn_base.final_state_encode,
+                    self.model.test_net_seq2seq.final_state_encode,
                     feed_dict={
                         self.model.x_root: x_root,
                         self.model.x_neighbour: x_neigh,
@@ -1386,39 +1475,63 @@ class All_Comb_Controller(Controller):
 
                 spredlist = list()
                 statelist = list()
-                for _ in range(config.out_seq_length):  # max sentence length
-                    spred, state = self.sess.run([
-                        self.model.test_net_base.outputs,
-                        self.model.test_net_rnn_base.final_state_decode],
-                        feed_dict={
-                            self.model.test_net_rnn_base.initial_state_decode: state,
-                            self.model.decode_seqs_test: spred,
-                            self.model.features: x_features,
-                            self.model.features_test: x_features[:, _:_+1 ,:]
-                        })
-                    spredlist.append(spred)
-                    statelist.append(state[1])  # LSTMStateTuple (cell_state, hidden_state)
 
-                if epoch < config.all_model_stage_epoch:
+                if epoch < config.all_model_stage_epoch[0]:
+                    for _ in range(config.out_seq_length):  # max sentence length
+                        spred, state = self.sess.run([
+                            self.model.test_net_spatial.outputs,
+                            self.model.test_net_seq2seq.final_state_decode],
+                            feed_dict={
+                                self.model.test_net_seq2seq.initial_state_decode: state,
+                                self.model.decode_seqs_test: spred,
+                                self.model.features: x_features,
+                                self.model.features_test: x_features[:, _:_+1 ,:]
+                            })
+                        spredlist.append(spred)
+                        statelist.append(state[1])  # LSTMStateTuple (cell_state, hidden_state)
+
                     basepred = np.concatenate(spredlist, axis=1)
                     mapeloss = utils.mape(basepred, target_seq[:, :-1, :])
                     predlist.append(basepred)
+
                 else:
-                    traffic_state = np.stack(statelist, axis=0)
-                    traffic_state = np.swapaxes(traffic_state, axis1=0, axis2=1)
-                    traffic_state = np.reshape(traffic_state, (config.batch_size * config.out_seq_length, config.dim_hidden))
 
-                    newpred = self.sess.run(
-                        self.model.test_net_query.outputs,
-                        feed_dict={
-                            self.model.traffic_state: traffic_state,
-                            self.model.query_decode_seq: decode_query[:, 1:, :],
-                            self.model.features: x_features,
-                            self.model.features_test: x_features[:, _:_+1 ,:]
-                        })
+                    for _ in range(config.out_seq_length):  # max sentence length
+                        spred, state = self.sess.run([
+                            self.model.test_net_wide.outputs,
+                            self.model.test_net_seq2seq.final_state_decode],
+                            feed_dict={
+                                self.model.test_net_seq2seq.initial_state_decode: state,
+                                self.model.decode_seqs_test: spred,
+                                self.model.features: x_features,
+                                self.model.features_test: x_features[:, _:_+1 ,:]
+                            })
+                        spredlist.append(spred)
+                        statelist.append(state[1])  # LSTMStateTuple (cell_state, hidden_state)
 
-                    mapeloss = utils.mape(newpred, target_seq[:, :-1, :])
-                    predlist.append(newpred)
+                    basepred = np.concatenate(spredlist, axis=1)
+
+                    if epoch < config.all_model_stage_epoch[1]:
+                        mapeloss = utils.mape(basepred, target_seq[:, :-1, :])
+                        predlist.append(basepred)
+                    else:
+                        traffic_state = np.stack(statelist, axis=0)
+                        traffic_state = np.swapaxes(traffic_state, axis1=0, axis2=1)
+                        assert traffic_state.shape == (config.batch_size, config.out_seq_length, config.dim_hidden)
+                        traffic_state = np.reshape(traffic_state, (config.batch_size * config.out_seq_length, config.dim_hidden))
+
+                        newpred = self.sess.run(
+                            self.model.test_net_query.outputs,
+                            feed_dict={
+                                self.model.traffic_state: traffic_state,
+                                self.model.query_decode_seq: decode_query[:, 1:, :],
+                                self.model.features: x_features,
+                                self.model.base_pred: basepred, # TODO residual net
+                                # self.model.features_test: x_features[:, _:_+1 ,:]
+                             })
+
+                        mapeloss = utils.mape(newpred, target_seq[:, :-1, :])
+                        predlist.append(newpred)
 
                 all_loss += np.mean(mapeloss)
                 time_loss += np.mean(mapeloss[:, :, 0], axis=0)
@@ -1429,7 +1542,7 @@ class All_Comb_Controller(Controller):
             if path % 500 == 0:
                 print(
                     "[Test %s] Epoch: [%3d][%5d/%5d] time: %.4f, loss: %s, tloss: %s" %
-                    ("base" if epoch < config.all_model_stage_epoch else "query", epoch, path, root_data.shape[0], time.time() - step_time, all_loss / round, time_loss / round)
+                    (stagestr, epoch, path, root_data.shape[0], time.time() - step_time, all_loss / round, time_loss / round)
                 )
 
                 tmppathpred = np.stack(pathpred, axis=0)
@@ -1450,7 +1563,7 @@ class All_Comb_Controller(Controller):
 
         print(
             "[Test %s Sum] Epoch [%3d]: time: %.4f, loss: %s, tloss: %s" %
-            ("base" if epoch < config.all_model_stage_epoch else "query", epoch, time.time() - start_time, all_loss / round, time_loss / round)
+            (stagestr, epoch, time.time() - start_time, all_loss / round, time_loss / round)
         )
 
         return all_loss, time_loss, pathpred
@@ -1468,10 +1581,13 @@ class All_Comb_Controller(Controller):
         global_epoch = self.base_epoch + 1
 
         if last_save_epoch >= 0:
-            self.restore_model(
-                path=self.model_save_dir,
-                global_step=last_save_epoch
-            )
+            try:
+                self.restore_model(
+                    path=self.model_save_dir,
+                    global_step=last_save_epoch
+                )
+            except:
+                tl.files.load_and_assign_npz_dict(name=self.model_save_dir + "%d.npz" % last_save_epoch, sess=self.sess)
 
         logger_train = log.Logger(columns=["loss", "nmse_train", "mape" ])
         # logger_valid = log.Logger(columns=["mae_copy", "lossv", "nmse_test", "nmsev", "msev", "maev", "mapev"])
@@ -1530,6 +1646,7 @@ class All_Comb_Controller(Controller):
         features_info, features_time, features_pathlist = dataloader.load_features(pathlist)
         query_data = dataloader.get_query_data()
 
+
         last_save_epoch = self.base_epoch
         global_epoch = self.base_epoch + 1
 
@@ -1538,6 +1655,14 @@ class All_Comb_Controller(Controller):
             path=self.model_save_dir,
             global_step=last_save_epoch
         )
+        '''
+        tl.files.save_npz_dict(
+            self.model.train_net_spatial.all_params + self.model.train_net_wide.all_params + self.model.train_net_query.all_params,
+            name=self.model_save_dir + "%d.npz" % global_epoch,
+            sess=self.sess
+        )
+        return
+        '''
 
         logger_test = log.Logger(columns=["mapev"] + list(range(15, 121, 15)))
 
@@ -1570,6 +1695,8 @@ if __name__ == "__main__":
         ctl.controller_test()
         ctl.sess.close()
 
+    '''
+    '''
     with tf.Graph().as_default() as graph:
         tl.layers.clear_layers_name()
         mdl = model.Seq2Seq_Model(
@@ -1578,11 +1705,14 @@ if __name__ == "__main__":
             decay_steps=2e4,
             decay_rate=0.5,
         )
-        ctl = Seq2Seq_Controller(model=mdl, base_epoch=90)
-        # ctl.controller_train()
-        ctl.controller_test()
+        ctl = Seq2Seq_Controller(model=mdl, base_epoch=100)
+        ctl.controller_train()
+        # ctl.controller_test()
         ctl.sess.close()
+    exit()
+    '''
 
+    '''
     with tf.Graph().as_default() as graph:
         tl.layers.clear_layers_name()
         mdl = model.WideDeep_Model(
@@ -1616,12 +1746,13 @@ if __name__ == "__main__":
     with tf.Graph().as_default() as graph:
         tl.layers.clear_layers_name()
         mdl = model.Query_Comb_Model(
-            model_name="query_comb_model_%d" % config.impact_k,
+            model_name="query_comb_model_%d_%d" % (config.impact_k, config.query_dim_hidden) if config.query_dim_hidden != config.dim_hidden else "query_comb_model_%d" % (config.impact_k),
+            # model_name="query_comb_model_%d" % config.impact_k,
             start_learning_rate=0.001,
-            decay_steps=1e4,
+            decay_steps=5e3,
             decay_rate=0.8
         )
-        ctl = Query_Comb_Controller(model=mdl, base_epoch=20)
+        ctl = Query_Comb_Controller(model=mdl, base_epoch=-1)
         ctl.controller_train()
         # ctl.controller_test()
         ctl.sess.close()
@@ -1630,12 +1761,13 @@ if __name__ == "__main__":
     with tf.Graph().as_default() as graph:
         tl.layers.clear_layers_name()
         mdl = model.All_Comb_Model(
-            model_name="all_comb_model_%d" % config.impact_k,
+            # model_name="all_comb_model_%d" % config.impact_k, # TODO update name
+            model_name="all_comb_model_%d_%d_%d" % (config.impact_k, config.dim_hidden, config.query_dim_hidden),
             start_learning_rate=0.001,
-            decay_steps=1e4,
+            decay_steps=2e3,
             decay_rate=0.8
         )
-        ctl = All_Comb_Controller(model=mdl, base_epoch=-1)
-        ctl.controller_train(tepoch=config.epoch * 2)
+        ctl = All_Comb_Controller(model=mdl, base_epoch=140)
+        ctl.controller_train(tepoch=50)
         # ctl.controller_test()
         ctl.sess.close()

@@ -161,6 +161,48 @@ def load_data(predecessor=5, successors=5):
 
     return rootdata, neigdata, rootpathlist
 
+def load_data_noneighbour(predecessor=5, successors=5):
+    print("Loading data...")
+    # traffic_data_file = open(config.data_path + "event_traffic_completion_beijing_15min_filtfilt_0.05.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_mv_avg_15min_completion.pkl", "rb")
+    # traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min.pkl", "rb")
+    traffic_data_file = open(config.data_path + "event_traffic_beijing_1km_mv_avg_15min_completion.pkl", "rb")
+    traffic_data = pickle.load(traffic_data_file, encoding='latin1')
+    traffic_data_file.close()
+
+    neighbour_file = open(config.result_path + "neighbours_1km.txt", "r")
+    neighbour = neighbour_file.readlines()
+
+    rootdata = list()
+
+    rootpathlist = list()
+    for idx, line in enumerate(neighbour):
+        # if idx > 100:
+        #     break
+        group = eval(line)
+        assert len(group) == predecessor + successors + 1
+
+        root_traffic = traffic_data[group[0]]
+        root_traffic = np.expand_dims(root_traffic, axis=-1)
+
+        prevlist = group[1 : 1 + predecessor]
+        nextlist = group[-successors : ]
+
+        rootdata.append(root_traffic)
+
+        rootpathlist.append(group[0])
+
+    rootdata = np.stack(rootdata)
+
+    lowbound = 5
+    assert lowbound > 0
+    assert lowbound < np.percentile(rootdata, 2)
+    rootdata[rootdata < lowbound] = lowbound
+
+    print("Data Loaded: x_root %s ", rootdata.shape)
+
+    return rootdata, rootpathlist
+
 def get_pathlist():
 
     pathlist = list()
@@ -328,7 +370,6 @@ def get_minibatch_all_comb(root_data, neighbour_data, features_info, features_ti
     minibatch_decode_seq_query[:, 0, :] = config.start_id
 
     return minibatch_x_root, minibatch_x_neighbour, minibatch_features, minibatch_decode_seq, minibatch_target_seq, minibatch_query_x, minibatch_decode_seq_query
-
 
 def get_minibatch_4_test_query(root_data, query_data, path, pathlist, cstep):
     minibatch_x_root = list()
@@ -542,12 +583,15 @@ def get_event_orders(event_filter_allpath, full_train_order, num_seq, tsteps=500
     for ord in full_train_order:
         seq_id = ord // num_seq
         seq_loc = ord % num_seq
+        if seq_id >= event_filter_allpath.shape[0] or \
+            seq_loc + config.in_seq_length + config.out_seq_length >= event_filter_allpath.shape[1]:
+            continue
         if np.sum(event_filter_allpath[seq_id, seq_loc + config.in_seq_length : seq_loc + config.in_seq_length + config.out_seq_length]) > 0:
             train_order[curnum] = ord
             curnum += 1
         if curnum == config.batch_size * tsteps:
             break
-    assert curnum == config.batch_size * tsteps
+    # assert curnum == config.batch_size * tsteps
     return train_order
 
 def get_minibatch_4_test_event(root_data, event_filter, path, startidx, neighbour_data=None):

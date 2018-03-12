@@ -4,7 +4,6 @@ in_seq_length   = 4 * 24
 out_seq_length  = 4 * 2
 num_neighbour   = 10
 
-# TODO update
 dim_hidden      = 128
 query_dim_hidden = 128
 # dim_hidden      = 64

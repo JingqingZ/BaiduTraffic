@@ -1,6 +1,6 @@
 # BaiduTraffic
 
-This project is a implementation of the following paper, which has not been published yet. The Q-Traffic dataset will be released soon in late March 2018.
+This project is an implementation of the following paper, which has not been published yet. The Q-Traffic dataset will be released soon in late March 2018.
 
 ### Deep Sequence Learning with Auxiliary Information for Traffic Prediction
 

@@ -4,7 +4,7 @@
 
 ###### Binbing Liao and Jingqing Zhang contributed equally to this article. 
 
-[Paper Link](#)
+[Paper Link](#) (Pending)
 
 ## Contents
 
@@ -110,6 +110,6 @@ In case using our dataset, please cite the following publication:
 
 <h2 id="Poster">Poster and Video</h2>
 
-- You can find our KDD 2018 poster here.
+- You can find our KDD 2018 poster here. (Pending)
 
-- You can find our KDD 2018 Video here.
+- You can find our KDD 2018 Video here. (Pending)

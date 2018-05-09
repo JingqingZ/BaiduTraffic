@@ -15,7 +15,7 @@
 7. [Poster and Video](#Poster)
 
 <h2 id="Abstract">Abstract</h2>
-Predicting traffic conditions from online route queries is a challenging task as there are many complicated interactions over the roads and crowds involved. In this paper, we intend to improve traffic prediction by appropriate integration of three kinds of implicit but essential factors encoded in auxiliary information. We do this within an encoder-decoder sequence learning framework that integrates the following data: **1) offline geographical and social attributes**. For example, the geographical structure of roads or public social events such as national celebrations; **2) road intersection information**, i.e. in general, traffic congestion occurs at major junctions; **3) online crowd queries**. For example, when many online queries issued for the same destination due to a public performance, the traffic around the destination will potentially become heavier at this location after a while. Qualitative and quantitative experiments on a real-world dataset from Baidu have demonstrated the effectiveness of our framework.
+Predicting traffic conditions from online route queries is a challenging task as there are many complicated interactions over the roads and crowds involved. In this paper, we intend to improve traffic prediction by appropriate integration of three kinds of implicit but essential factors encoded in auxiliary information. We do this within an encoder-decoder sequence learning framework that integrates the following data: 1) offline geographical and social attributes. For example, the geographical structure of roads or public social events such as national celebrations; 2) road intersection information, i.e. in general, traffic congestion occurs at major junctions; 3) online crowd queries. For example, when many online queries issued for the same destination due to a public performance, the traffic around the destination will potentially become heavier at this location after a while. Qualitative and quantitative experiments on a real-world dataset from Baidu have demonstrated the effectiveness of our framework.
 
 
 <h2 id="Model">Model</h2>
@@ -23,7 +23,7 @@ model
 
 
 <h2 id="Dataset">Q-Traffic Dataset</h2>
-We collected a large-scale traffic prediction dataset --- Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
+We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
 
 ### Query Sub-dataset
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the starting time-stamp, coordinates of the starting location, estimated arrival time-stamp, coordinates and query word of the destination. There are some query samples as follows:
@@ -58,7 +58,7 @@ Due to the spatio-temporal dependencies of traffic data, the topology of the roa
 For each road segment in the traffic speed sub-dataset, the road network sub-dataset provides the starting node (*snode*) and ending node (*enode*) of the road segment, based on which the topology of the road network can be built. In addition, the sub-dataset also provides various geographical attributes of each road segment, such as width, length, speed limit and the number of lanes. Furthermore, we also provide the social attributes such as weekdays, weekends, public holidays, peak hours and off-peak hours.
 
 ### Access to the Q-Traffic Dataset
-Please read and sign the [agreement](fig/agreement.pdf) for the access to the Q-Traffic Dataset. After Sending an email to Binbing Liao <code>bbliao@zju.edu.cn</code>  with signed and scanned agreement of all people (including the supervisor) who want to use the dataset, you will receive an address to download the dataset. 
+Please read and sign the [agreement](fig/AccessQTrafficDataset.pdf) for the access to the Q-Traffic Dataset. After Sending an email to Binbing Liao <code>bbliao@zju.edu.cn</code>  with signed and scanned agreement of all people (including the supervisor) who want to use the dataset, you will receive an address to download the dataset. 
 
 
 <h2 id="Experiments">Experiments</h2>

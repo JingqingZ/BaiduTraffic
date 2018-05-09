@@ -67,9 +67,11 @@ installation
 
 
 <h2 id="Citation">Citation</h2>
+
 In case using our dataset, please cite the following publication:  
 
 <code>
+ 
     @inproceedings{bbliaojqZhangKDD18deep,  
 
     title = {Deep Sequence Learning with Auxiliary Information for Traffic Prediction},  

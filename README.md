@@ -2,7 +2,7 @@
 
 ### Binbing Liao, Jingqing Zhang, Chao Wu, Douglas McIlwraith, Tong Chen, Shengwen Yang, Yike Guo, Fei Wu
 
-###### Binbing Liao and Jingqing Zhang contributed equally to this article. Jingqing Zhang is funded by LexisNexis HPCC Academic Program.
+###### Binbing Liao and Jingqing Zhang contributed equally to this article. 
 
 ## Contents
 
@@ -30,6 +30,7 @@ This sub-dataset was collected in Beijing, China between April 1, 2017 and May 3
 
 <code>
 aaa, bbb, ccc, ddd, eee  
+
 aaa, bbb, ccc, ddd, eee
 </code>
 
@@ -45,6 +46,7 @@ There are some traffic speed samples as follows:
 
 <code>
 id, time, speed  
+
 id, time, speed 
 </code>
 
@@ -65,19 +67,27 @@ installation
 
 
 <h2 id="Citation">Citation</h2>
-In case using our dataset, please cite the following publication:
+In case using our dataset, please cite the following publication:  
 
 <code>
-@inproceedings{bbliaojqZhangKDD18deep,  
+    @inproceedings{bbliaojqZhangKDD18deep,  
+
     title = {Deep Sequence Learning with Auxiliary Information for Traffic Prediction},  
+
     author = {Binbing Liao and Jingqing Zhang and Chao Wu and Douglas McIlwraith and Tong Chen and Shengwen Yang and Yike Guo and Fei Wu},  
+
     booktitle = {Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},  
+
     year = {2018},  
+
     organization = {ACM}  
-}  
+
+    }  
 </code>
 
 
 <h2 id="Poster">Poster and Video</h2>
+
 - You can find our KDD 2018 poster here.
+
 - You can find our KDD 2018 Video here.

@@ -4,13 +4,15 @@
 
 ###### Binbing Liao and Jingqing Zhang contributed equally to this article. 
 
+[Paper Link](#)
+
 ## Contents
 
 1. [Abstract](#Abstract)
 2. [Model](#Model)
 3. [Q-Traffic Dataset](#Dataset)
 4. [Experiments](#Experiments)
-5. [Installation](#Installation)
+5. [Code](#Code)
 6. [Citation](#Citation)
 7. [Poster and Video](#Poster)
 
@@ -65,8 +67,23 @@ Please read and sign the [agreement](fig/AccessQTrafficDataset.pdf) for the acce
 experiments
 
 
-<h2 id="Installation">Installation</h2>
-installation
+<h2 id="Code">Code</h2>
+
+The source code has been tested with:
+- Python 3.5
+- TensorFlow 1.3.0
+- TensorLayer 1.7.3
+- numpy 1.14.0
+- pandas 0.21.0
+- scikit-learn 0.19.1
+
+
+The structure of code:
+- [model.py](src/model.py): Implementation of deep learning models
+- [train.py](src/train.py): Implementation of controllers for training and testing
+- [baselines.py](src/baselines.py): Implementation of baseline models including RF and SVR
+- [dataloader.py](src/dataloader.py): Data processing and loading
+- others: utilities, playground, logging, data preprocessing
 
 
 <h2 id="Citation">Citation</h2>

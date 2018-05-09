@@ -1,4 +1,4 @@
-# Deep Sequence Learning with Auxiliary Information for Traffic Prediction. KDD 2018 (Accepted).
+# Deep Sequence Learning with Auxiliary Information for Traffic Prediction. KDD 2018. (Accepted)
 
 ### Binbing Liao, Jingqing Zhang, Chao Wu, Douglas McIlwraith, Tong Chen, Shengwen Yang, Yike Guo, Fei Wu
 
@@ -8,7 +8,7 @@
 
 1. [Abstract](#Abstract)
 2. [Model](#Model)
-3. [Dataset](#Dataset)
+3. [Q-Traffic Dataset](#Dataset)
 4. [Experiments](#Experiments)
 5. [Installation](#Installation)
 6. [Citation](#Citation)
@@ -22,7 +22,7 @@ Predicting traffic conditions from online route queries is a challenging task as
 model
 
 
-<h2 id="Dataset">Dataset</h2>
+<h2 id="Dataset">Q-Traffic Dataset</h2>
 We collected a large-scale traffic prediction dataset --- Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
 
 ### Query Sub-dataset
@@ -56,6 +56,9 @@ Due to the spatio-temporal dependencies of traffic data, the topology of the roa
 ![Table 2. Examples of geographical attributes of each road segment.](https://github.com/JingqingZ/BaiduTraffic/tree/master/fig/road-network-subdataset.png)
 
 For each road segment in the traffic speed sub-dataset, the road network sub-dataset provides the starting node (*snode*) and ending node (*enode*) of the road segment, based on which the topology of the road network can be built. In addition, the sub-dataset also provides various geographical attributes of each road segment, such as width, length, speed limit and the number of lanes. Furthermore, we also provide the social attributes such as weekdays, weekends, public holidays, peak hours and off-peak hours.
+
+### Access to the Q-Traffic Dataset
+Please read and sign the [agreement](fig/agreement.pdf) for the access to the Q-Traffic Dataset. After Sending an email to Binbing Liao <code>bbliao@zju.edu.cn</code>  with signed and scanned agreement of all people (including the supervisor) who want to use the dataset, you will receive an address to download the dataset. 
 
 
 <h2 id="Experiments">Experiments</h2>

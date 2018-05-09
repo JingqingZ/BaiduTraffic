@@ -31,14 +31,15 @@ installation
 
 <h2 id="Citation">Citation</h2>
 In case using our dataset, please cite the following publication:
-> @inproceedings{bbliaojqZhangKDD18deep,  
->    title = {Deep Sequence Learning with Auxiliary Information for Traffic Prediction},  
->    author = {Binbing Liao and Jingqing Zhang and Chao Wu and Douglas McIlwraith and Tong Chen and Shengwen Yang and Yike Guo and Fei Wu},  
->    booktitle = {Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},  
->    year = {2018},  
->    organization = {ACM}  
-> }  
-
+<code>
+@inproceedings{bbliaojqZhangKDD18deep,  
+    title = {Deep Sequence Learning with Auxiliary Information for Traffic Prediction},  
+    author = {Binbing Liao and Jingqing Zhang and Chao Wu and Douglas McIlwraith and Tong Chen and Shengwen Yang and Yike Guo and Fei Wu},  
+    booktitle = {Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},  
+    year = {2018},  
+    organization = {ACM}  
+}  
+</code>
 
 <h2 id="Poster">Poster and Video</h2>
 - You can find our KDD 2018 poster here.

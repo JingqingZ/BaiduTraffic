@@ -28,13 +28,17 @@ model
 We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
 
 ### Query Sub-dataset
-This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, estimated arrival time-stamp, coordinates of the destination</code>, and <code>query word</code>. There are some query samples as follows:
+This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location (mercator), estimated travel time (minutes), coordinates of the destination (mercator)</code>, and <code>query word</code>. There are some query samples as follows:
 
 <code>
-aaa, bbb, ccc, ddd, eee  
+2017-04-01 19:42:23, 12949432.0	4843443.0, 33, 12952254.0 4851399.0, 北京市昌平区文华路  
 
-aaa, bbb, ccc, ddd, eee
+2017-04-01 18:00:05, 12967555.0	4825800.0, 20, 12961432.93 4831432.89, 北官厅胡同  
+
+2017-04-01 01:14:08, 12949418.0	4837530.0, 18, 12953985.0 4836373.55, 京味斋(花园北路店)  
+
 </code>
+
 
 ### Traffic Speed Sub-dataset
 We also collected the traffic speed data for the same area and during the same time period as the query sub-dataset. This sub-dataset contains 15,073 road segments covering approximately 738.91 km. Figure 1 shows the spatial distribution of these road segments, respectively.  
@@ -45,15 +49,22 @@ We also collected the traffic speed data for the same area and during the same t
 </p>
 
 
-They are all in the 6th ring road (bounded by the lon/lat box of <116.10, 39.69, 116.71, 40.18>), which is the most crowded area of Beijing. The traffic speed of each road segment is recorded per minute. To make the traffic speed predictable, for each road segment, we use simple [moving average](https://en.wikipedia.org/wiki/Moving_average) with a 15-minute time window to smooth the traffic speed sub-dataset and sample the traffic speed per 15 minutes.
-Thus, each record is represented as road_segment_id, time_stamp, traffic_speed.
+They are all in the 6th ring road (bounded by the lon/lat box of <116.10, 39.69, 116.71, 40.18>), which is the most crowded area of Beijing. The traffic speed of each road segment is recorded per minute. To make the traffic speed predictable, for each road segment, we use simple [moving average](https://en.wikipedia.org/wiki/Moving_average) with a 15-minute time window to smooth the traffic speed sub-dataset and sample the traffic speed per 15 minutes. 
+Thus, there are totally 5856 ($61 \times 24 \times 4$) time steps, and each record is represented as <code>road_segment_id, time_stamp ([0, 5856))</code> and <code>traffic_speed (km/h)</code>.
 
 There are some traffic speed samples as follows:
 
 <code>
-id, time, speed  
+15257588940, 0, 42.1175  
 
-id, time, speed 
+...
+
+15257588940, 5855, 33.6599  
+
+1525758913, 0, 41.2719  
+
+...  
+
 </code>
 
 ### Road Network Sub-dataset

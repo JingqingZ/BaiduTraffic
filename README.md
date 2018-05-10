@@ -59,6 +59,11 @@ Due to the spatio-temporal dependencies of traffic data, the topology of the roa
 
 For each road segment in the traffic speed sub-dataset, the road network sub-dataset provides the starting node (*snode*) and ending node (*enode*) of the road segment, based on which the topology of the road network can be built. In addition, the sub-dataset also provides various geographical attributes of each road segment, such as width, length, speed limit and the number of lanes. Furthermore, we also provide the social attributes such as weekdays, weekends, public holidays, peak hours and off-peak hours.
 
+### Comparison with Other Datasets
+Table 3 shows the comparison of different datasets for traffic speed prediction. In the past few years, researchers have performed experiments with small or (and) private datasets. The release of Q-Traffic, a large-scale public available dataset with offline (geographical and social attributes, road network) and online (crowd map queries) information, should lead to an improvement of the research of traffic prediction.
+
+![Table 3. Comparison of different datasets for traffic speed prediction.](https://github.com/JingqingZ/BaiduTraffic/tree/master/fig/cmp-datasets.png)
+
 ### Access to the Q-Traffic Dataset
 Please read and sign the [agreement](fig/AccessQTrafficDataset.pdf) for the access to the Q-Traffic Dataset. After Sending an email to Binbing Liao <code>bbliao@zju.edu.cn</code>  with signed and scanned agreement of all people (including the supervisor) who want to use the dataset, you will receive an address to download the dataset. 
 

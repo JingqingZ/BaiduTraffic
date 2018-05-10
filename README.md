@@ -31,12 +31,13 @@ We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location (mercator), estimated travel time (minutes), coordinates of the destination (mercator)</code>, and <code>query word</code>. There are some query samples as follows:
 
 <code>
-2017-04-01 19:42:23, 12949432.0	4843443.0, 33, 12952254.0 4851399.0, 北京市昌平区文华路  
-
-2017-04-01 18:00:05, 12967555.0	4825800.0, 20, 12961432.93 4831432.89, 北官厅胡同  
-
-2017-04-01 01:14:08, 12949418.0	4837530.0, 18, 12953985.0 4836373.55, 京味斋(花园北路店)  
-
+    2017-04-01 19:42:23, 12949432.0	4843443.0, 33, 12952254.0 4851399.0, 北京市昌平区文华路  
+    
+    2017-04-01 18:00:05, 12967555.0	4825800.0, 20, 12961432.93 4831432.89, 北官厅胡同  
+    
+    2017-04-01 01:14:08, 12949418.0	4837530.0, 18, 12953985.0 4836373.55, 京味斋(花园北路店)  
+    
+    ..., ..., ..., ..., ...
 </code>
 
 
@@ -44,7 +45,7 @@ This sub-dataset was collected in Beijing, China between April 1, 2017 and May 3
 We also collected the traffic speed data for the same area and during the same time period as the query sub-dataset. This sub-dataset contains 15,073 road segments covering approximately 738.91 km. Figure 1 shows the spatial distribution of these road segments, respectively.  
 
 <p align="center">
-  <img src="fig/beijing_road_seg_compressed.png" width="800">
+  <img src="fig/beijing_road_seg_compressed.png" width="600">
   <br><i>Figure 1. Spatial distribution of the road segments in Beijing</i>
 </p>
 
@@ -55,23 +56,22 @@ Thus, there are totally 5856 ($61 \times 24 \times 4$) time steps, and each reco
 There are some traffic speed samples as follows:
 
 <code>
-15257588940, 0, 42.1175  
-
-...
-
-15257588940, 5855, 33.6599  
-
-1525758913, 0, 41.2719  
-
-...  
-
+    15257588940, 0, 42.1175  
+    
+    ..., ..., ...  
+      
+    15257588940, 5855, 33.6599  
+    
+    1525758913, 0, 41.2719  
+    
+    ..., ..., ...  
 </code>
 
 ### Road Network Sub-dataset
 Due to the spatio-temporal dependencies of traffic data, the topology of the road network would help to predict traffic. Table 1 shows the fields of the road network sub-dataset. 
 
 <p align="center">
-  <img src="fig/road-network-subdataset.png" width="800">
+  <img src="fig/road-network-subdataset.png" width="400">
   <br><i>Table 1. Examples of geographical attributes of each road segment.</i>
 </p>
 

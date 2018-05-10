@@ -19,18 +19,16 @@
 <h2 id="Abstract">Abstract</h2>
 Predicting traffic conditions from online route queries is a challenging task as there are many complicated interactions over the roads and crowds involved. In this paper, we intend to improve traffic prediction by appropriate integration of three kinds of implicit but essential factors encoded in auxiliary information. We do this within an encoder-decoder sequence learning framework that integrates the following data: 1) offline geographical and social attributes. For example, the geographical structure of roads or public social events such as national celebrations; 2) road intersection information, i.e. in general, traffic congestion occurs at major junctions; 3) online crowd queries. For example, when many online queries issued for the same destination due to a public performance, the traffic around the destination will potentially become heavier at this location after a while. Qualitative and quantitative experiments on a real-world dataset from Baidu have demonstrated the effectiveness of our framework.
 
-
 <h2 id="Model">Model</h2>
 model
-
 
 <h2 id="Dataset">Q-Traffic Dataset</h2>
 We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
 
 ### Query Sub-dataset
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location (mercator), estimated travel time (minutes), coordinates of the destination (mercator)</code>, and <code>query word</code>. There are some query samples as follows:
-
 <code>
+
     2017-04-01 19:42:23, 12949432.0	4843443.0, 33, 12952254.0 4851399.0, 北京市昌平区文华路  
     
     2017-04-01 18:00:05, 12967555.0	4825800.0, 20, 12961432.93 4831432.89, 北官厅胡同  
@@ -39,7 +37,6 @@ This sub-dataset was collected in Beijing, China between April 1, 2017 and May 3
     
     ..., ..., ..., ..., ...
 </code>
-
 
 ### Traffic Speed Sub-dataset
 We also collected the traffic speed data for the same area and during the same time period as the query sub-dataset. This sub-dataset contains 15,073 road segments covering approximately 738.91 km. Figure 1 shows the spatial distribution of these road segments, respectively.  
@@ -54,8 +51,8 @@ They are all in the 6th ring road (bounded by the lon/lat box of <116.10, 39.69,
 Thus, there are totally 5856 ($61 \times 24 \times 4$) time steps, and each record is represented as <code>road_segment_id, time_stamp ([0, 5856))</code> and <code>traffic_speed (km/h)</code>.
 
 There are some traffic speed samples as follows:
-
 <code>
+
     15257588940, 0, 42.1175  
     
     ..., ..., ...  

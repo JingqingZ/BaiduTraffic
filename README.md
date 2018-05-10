@@ -28,7 +28,7 @@ model
 We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
 
 ### Query Sub-dataset
-This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the starting time-stamp, coordinates of the starting location, estimated arrival time-stamp, coordinates and query word of the destination. There are some query samples as follows:
+This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, estimated arrival time-stamp, coordinates of the destination</code>, and <code>query word</code>. There are some query samples as follows:
 
 <code>
 aaa, bbb, ccc, ddd, eee  
@@ -39,7 +39,11 @@ aaa, bbb, ccc, ddd, eee
 ### Traffic Speed Sub-dataset
 We also collected the traffic speed data for the same area and during the same time period as the query sub-dataset. This sub-dataset contains 15,073 road segments covering approximately 738.91 km. Figure 1 shows the spatial distribution of these road segments, respectively.  
 
-![Spatial distribution of the road segments in Beijing](https://github.com/JingqingZ/BaiduTraffic/tree/master/fig/beijing_road_seg_compressed.png)
+<p align="center">
+  <img src="fig/beijing_road_seg_compressed.png" width="800">
+  <br><i>Figure 1. Spatial distribution of the road segments in Beijing</i>
+</p>
+
 
 They are all in the 6th ring road (bounded by the lon/lat box of <116.10, 39.69, 116.71, 40.18>), which is the most crowded area of Beijing. The traffic speed of each road segment is recorded per minute. To make the traffic speed predictable, for each road segment, we use simple [moving average](https://en.wikipedia.org/wiki/Moving_average) with a 15-minute time window to smooth the traffic speed sub-dataset and sample the traffic speed per 15 minutes.
 Thus, each record is represented as road_segment_id, time_stamp, traffic_speed.
@@ -53,16 +57,22 @@ id, time, speed
 </code>
 
 ### Road Network Sub-dataset
-Due to the spatio-temporal dependencies of traffic data, the topology of the road network would help to predict traffic. Table 2 shows the fields of the road network sub-dataset. 
+Due to the spatio-temporal dependencies of traffic data, the topology of the road network would help to predict traffic. Table 1 shows the fields of the road network sub-dataset. 
 
-![Table 2. Examples of geographical attributes of each road segment.](https://github.com/JingqingZ/BaiduTraffic/tree/master/fig/road-network-subdataset.png)
+<p align="center">
+  <img src="fig/road-network-subdataset.png" width="800">
+  <br><i>Table 1. Examples of geographical attributes of each road segment.</i>
+</p>
 
 For each road segment in the traffic speed sub-dataset, the road network sub-dataset provides the starting node (*snode*) and ending node (*enode*) of the road segment, based on which the topology of the road network can be built. In addition, the sub-dataset also provides various geographical attributes of each road segment, such as width, length, speed limit and the number of lanes. Furthermore, we also provide the social attributes such as weekdays, weekends, public holidays, peak hours and off-peak hours.
 
 ### Comparison with Other Datasets
-Table 3 shows the comparison of different datasets for traffic speed prediction. In the past few years, researchers have performed experiments with small or (and) private datasets. The release of Q-Traffic, a large-scale public available dataset with offline (geographical and social attributes, road network) and online (crowd map queries) information, should lead to an improvement of the research of traffic prediction.
+Table 2 shows the comparison of different datasets for traffic speed prediction. In the past few years, researchers have performed experiments with small or (and) private datasets. The release of Q-Traffic, a large-scale public available dataset with offline (geographical and social attributes, road network) and online (crowd map queries) information, should lead to an improvement of the research of traffic prediction.
 
-![Table 3. Comparison of different datasets for traffic speed prediction.](https://github.com/JingqingZ/BaiduTraffic/tree/master/fig/cmp-datasets.png)
+<p align="center">
+  <img src="fig/cmp-datasets.png" width="800">
+  <br><i>Table 2. Comparison of different datasets for traffic speed prediction.</i>
+</p>
 
 ### Access to the Q-Traffic Dataset
 Please read and sign the [agreement](fig/AccessQTrafficDataset.pdf) for the access to the Q-Traffic Dataset. After Sending an email to Binbing Liao <code>bbliao@zju.edu.cn</code>  with signed and scanned agreement of all people (including the supervisor) who want to use the dataset, you will receive an address to download the dataset. 

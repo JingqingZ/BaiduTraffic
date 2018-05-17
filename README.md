@@ -29,11 +29,11 @@ We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, coordinates of the destination, estimated travel time (minutes)</code>. There are some query samples as follows:
 <code>
 
-    2017-04-01 19:42:23, 116.88 37.88, 116.88 37.88, 33  
+    2017-04-01 19:42:23, 116.88 37.88, 116.88 37.88, 33
     
-    2017-04-01 18:00:05, 116.88	37.88, 116.88 37.88, 33  
+    2017-04-01 18:00:05, 116.88 37.88, 116.88 37.88, 33
     
-    2017-04-01 01:14:08, 116.88	37.88, 116.88 37.88, 33  
+    2017-04-01 01:14:08, 116.88 37.88, 116.88 37.88, 33
     
     ..., ..., ..., ..., ...
 </code>

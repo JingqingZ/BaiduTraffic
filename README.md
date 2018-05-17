@@ -26,14 +26,14 @@ model
 We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
 
 ### Query Sub-dataset
-This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location (mercator), estimated travel time (minutes), coordinates of the destination (mercator)</code>, and <code>query word</code>. There are some query samples as follows:
+This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is decribed in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, coordinates of the destination, estimated travel time (minutes)</code>. There are some query samples as follows:
 <code>
 
-    2017-04-01 19:42:23, 12949432.0	4843443.0, 33, 12952254.0 4851399.0, 北京市昌平区文华路  
+    2017-04-01 19:42:23, 116.88 37.88, 116.88 37.88, 33  
     
-    2017-04-01 18:00:05, 12967555.0	4825800.0, 20, 12961432.93 4831432.89, 北官厅胡同  
+    2017-04-01 18:00:05, 116.88	37.88, 116.88 37.88, 33  
     
-    2017-04-01 01:14:08, 12949418.0	4837530.0, 18, 12953985.0 4836373.55, 京味斋(花园北路店)  
+    2017-04-01 01:14:08, 116.88	37.88, 116.88 37.88, 33  
     
     ..., ..., ..., ..., ...
 </code>

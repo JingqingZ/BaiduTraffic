@@ -96,7 +96,7 @@ The structure of code:
 - [model.py](src/model.py): Implementation of deep learning models
 - [train.py](src/train.py): Implementation of controllers for training and testing
 - [baselines.py](src/baselines.py): Implementation of baseline models including RF and SVR
-- [dataloader.py](src/dataloader.py): Data processing and loading
+- [dataloader.py](src/dataloader.py): Data processing and loading, subject to change due to data format if necessary
 - others: utilities, playground, logging, data preprocessing
 
 

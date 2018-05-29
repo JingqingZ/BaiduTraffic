@@ -9,12 +9,10 @@
 ## Contents
 
 1. [Abstract](#Abstract)
-2. [Model](#Model)
-3. [Q-Traffic Dataset](#Dataset)
-4. [Experiments](#Experiments)
-5. [Code](#Code)
-6. [Citation](#Citation)
-7. [Poster and Video](#Poster)
+2. [Q-Traffic Dataset](#Dataset)
+3. [Code](#Code)
+4. [Citation](#Citation)
+5. [Poster and Video](#Poster)
 
 <h2 id="Abstract">Abstract</h2>
 Predicting traffic conditions from online route queries is a challenging task as there are many complicated interactions over the roads and crowds involved. In this paper, we intend to improve traffic prediction by appropriate integration of three kinds of implicit but essential factors encoded in auxiliary information. We do this within an encoder-decoder sequence learning framework that integrates the following data: 1) offline geographical and social attributes. For example, the geographical structure of roads or public social events such as national celebrations; 2) road intersection information, i.e. in general, traffic congestion occurs at major junctions; 3) online crowd queries. For example, when many online queries issued for the same destination due to a public performance, the traffic around the destination will potentially become heavier at this location after a while. Qualitative and quantitative experiments on a real-world dataset from Baidu have demonstrated the effectiveness of our framework.

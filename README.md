@@ -20,6 +20,9 @@ Predicting traffic conditions from online route queries is a challenging task as
 <h2 id="Dataset">Q-Traffic Dataset</h2>
 We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which consists of three sub-datasets: query sub-dataset, traffic speed sub-dataset and road network sub-dataset. We compare our released Q-Traffic dataset with different datasets used for traffic prediction.
 
+### Access to the Q-Traffic Dataset
+This dataset is now available at Baidu Research Open-Access Dataset ([BROAD](https://ai.baidu.com/broad/introduction?dataset=traffic)).
+
 ### Query Sub-dataset
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is described in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, coordinates of the destination, estimated travel time (minutes)</code>. There are some query samples as follows:
 <code>
@@ -76,9 +79,6 @@ Table 2 shows the comparison of different datasets for traffic speed prediction.
   <img src="fig/cmp-datasets.png" width="800">
   <br><i>Table 2. Comparison of different datasets for traffic speed prediction.</i>
 </p>
-
-### Access to the Q-Traffic Dataset
-This dataset will be available after 5 Jun 2018 (estimated) at Baidu Research Open-Access Dataset ([BROAD](http://ai.baidu.com/broad/)).
 
 
 <h2 id="Code">Code</h2>

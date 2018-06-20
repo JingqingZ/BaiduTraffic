@@ -117,4 +117,4 @@ In case using our dataset, please cite the following publication:
 <h2 id="Poster">Poster and Video</h2>
 
 * You can find our KDD 2018 poster here. (Pending)  
-* You can find our KDD 2018 Video here. (Pending)  
+* You can find our KDD 2018 Video here. [YouTube](https://www.youtube.com/watch?v=Sw-XqR0MzhA)  

@@ -4,7 +4,7 @@
 
 ###### Binbing Liao and Jingqing Zhang contributed equally to this article. 
 
-[Paper Link](#) (The official download link from ACM is not available yet, but the latest version can be found in the [Issue#3](https://github.com/JingqingZ/BaiduTraffic/issues/3))
+Paper Link: [arXiv](https://arxiv.org/abs/1806.07380)
 
 ## Contents
 

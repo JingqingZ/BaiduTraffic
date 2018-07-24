@@ -118,5 +118,5 @@ In case using our dataset, please cite the following publication:
 
 <h2 id="Poster">Poster and Video</h2>
 
-* You can find our KDD 2018 poster here. (Pending)  
+* You can find our KDD 2018 poster [here](https://github.com/JingqingZ/BaiduTraffic/blob/master/fig/Deep%20Sequence%20Learning%20with%20Auxiliary%20Information%20for%20Traffic%20Prediction%20-%20Poster.pdf).
 * You can find our KDD 2018 Video here. [YouTube](https://www.youtube.com/watch?v=Sw-XqR0MzhA)  

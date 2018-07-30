@@ -4,7 +4,7 @@
 
 ###### Binbing Liao and Jingqing Zhang contributed equally to this article. 
 
-Paper Link: [arXiv](https://arxiv.org/abs/1806.07380) [KDD18](http://www.kdd.org/kdd2018/accepted-papers/view/deep-sequence-learning-with-auxiliary-information-for-traffic-prediction)
+Paper Link: [arXiv](https://arxiv.org/abs/1806.07380) or [KDD18](http://www.kdd.org/kdd2018/accepted-papers/view/deep-sequence-learning-with-auxiliary-information-for-traffic-prediction)
 
 ## Contents
 

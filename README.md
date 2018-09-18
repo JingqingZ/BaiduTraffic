@@ -25,7 +25,7 @@ This dataset is now available at Baidu Research Open-Access Dataset (BROAD).
 
 Link: [https://ai.baidu.com/broad/introduction?dataset=traffic](https://ai.baidu.com/broad/introduction?dataset=traffic).
 
-In case you cannot decompress the dataest successfully, you may find the [issue\#4](https://github.com/JingqingZ/BaiduTraffic/issues/4) helpful.
+In case you cannot decompress the dataest successfully, you may find the [issue\#4](https://github.com/JingqingZ/BaiduTraffic/issues/4) helpful. To get GPS information, you may refer to the [issue\#6](https://github.com/JingqingZ/BaiduTraffic/issues/6). Other open/closed issues may be also helpful. Please feel free to raise an issue if you have any question.
 
 ### Query Sub-dataset
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is described in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, coordinates of the destination, estimated travel time (minutes)</code>. There are some query samples as follows:

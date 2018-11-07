@@ -113,8 +113,9 @@ In case using our dataset, please cite the following publication:
 
     @inproceedings{bbliaojqZhangKDD18deep,  
       title = {Deep Sequence Learning with Auxiliary Information for Traffic Prediction},  
-      author = {Binbing Liao and Jingqing Zhang and Chao Wu and Douglas McIlwraith and Tong Chen and Shengwen Yang  and Yike Guo and Fei Wu},  
+      author = {Binbing Liao and Jingqing Zhang and Chao Wu and Douglas McIlwraith and Tong Chen and Shengwen Yang and Yike Guo and Fei Wu},  
       booktitle = {Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},  
+      pages = {537--546},
       year = {2018},  
       organization = {ACM}  
     }  

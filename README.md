@@ -27,7 +27,7 @@ Link: [https://ai.baidu.com/broad/introduction?dataset=traffic](https://ai.baidu
 
 In case you cannot decompress the dataest successfully, you may find the [issue\#4](https://github.com/JingqingZ/BaiduTraffic/issues/4) helpful. To get GPS information, you may refer to the [issue\#6](https://github.com/JingqingZ/BaiduTraffic/issues/6). Other open/closed issues may be also helpful. Please feel free to raise an issue if you have any question.
 
-Unfortunately, the <b>intermediate data files</b> (after pre-processing) are not released due to size limit. But the code for pre-processing can be found in [src/preprocessing](src/preprocessing).
+The <b>intermediate data files</b> (after pre-processing) are available at [intermediate\_files](intermediate_files), so you can directly train the model now.
 
 ### Query Sub-dataset
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is described in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, coordinates of the destination, estimated travel time (minutes)</code>. There are some query samples as follows:

@@ -1,4 +1,5 @@
-We are sorry about the absence of the intermediate data files (mostly in pkl) due to the size of them. Here, we release some preprocessing codes. Although the input of these codes are not the same as the released dataset (which is organized well for readibility and privacy), we wish these codes would be useful.
+
+Please also check this folder [`intermediate_files`](../../intermediate_files) for the intermediate data files and code for data preprocessing.
 
 ## query codes
 - get\_link\_info\_feature\_beijing.py: for each link, extract link info feature;

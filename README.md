@@ -25,7 +25,7 @@ This dataset is now available at Baidu Research Open-Access Dataset (BROAD).
 
 Link: [https://ai.baidu.com/broad/introduction?dataset=traffic](https://ai.baidu.com/broad/introduction?dataset=traffic).
 
-In case you cannot decompress the dataest successfully, you may find the [issue\#4](https://github.com/JingqingZ/BaiduTraffic/issues/4) helpful. To get GPS information, you may refer to the [issue\#6](https://github.com/JingqingZ/BaiduTraffic/issues/6). Other open/closed issues may be also helpful. Please feel free to raise an issue if you have any question.
+In case you cannot decompress the dataest successfully, you may find the [issue\#4](https://github.com/JingqingZ/BaiduTraffic/issues/4) helpful. To get GPS information, you may refer to the [issue\#6](https://github.com/JingqingZ/BaiduTraffic/issues/6) and [#5](https://github.com/JingqingZ/BaiduTraffic/issues/5)_. Other open/closed issues may be also helpful. Please feel free to raise an issue if you have any question.
 
 The <b>intermediate data files</b> (after pre-processing) are available at [intermediate\_files](intermediate_files), so you can directly train the model now.
 

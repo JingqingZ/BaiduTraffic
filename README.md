@@ -29,6 +29,8 @@ In case you cannot decompress the dataest successfully, you may find the [issue\
 
 The <b>intermediate data files</b> (after pre-processing) are available at [intermediate\_files](intermediate_files), so you can directly train the model now.
 
+Alternative download links can be found in [issue#15](https://github.com/JingqingZ/BaiduTraffic/issues/15).
+
 ### Query Sub-dataset
 This sub-dataset was collected in Beijing, China between April 1, 2017 and May 31, 2017, from the [Baidu Map](https://map.baidu.com). The detailed pre-processing of this sub-dataset is described in the paper. The query sub-dataset contains about 114 million user queries, each of which records the <code>starting time-stamp, coordinates of the starting location, coordinates of the destination, estimated travel time (minutes)</code>. There are some query samples as follows:
 <code>

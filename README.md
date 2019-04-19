@@ -23,7 +23,7 @@ We collected a large-scale traffic prediction dataset - Q-Traffic dataset, which
 ### Access to the Q-Traffic Dataset
 This dataset is updated and now available at [BaiduNetDisk](https://pan.baidu.com/s/1s1bauEJs8ONtC65ZkC4N3A) Code：umqd. 
 
-For those who have downloaded the old dataset, we strongly suggest you to re-download the updated dataset. The old dataset at Baidu Research Open-Access Dataset (BROAD) exists some duplicated hashed_link_id due to the hash function. So the hashed_link_id is removed in the updated dataset, meaning that we just use the `link_id` which is consistant with the [intermediate\_files](intermediate_files).
+For those who have downloaded the old dataset, we strongly suggest you re-download the updated dataset. The old dataset at Baidu Research Open-Access Dataset (BROAD) exists some duplicated hashed_link_id due to the hash function. So the hashed_link_id is removed in the updated dataset, meaning that we just use the `link_id` which is consistent with the [intermediate\_files](intermediate_files).
 
 The <b>intermediate data files</b> (after pre-processing) are available at [intermediate\_files](intermediate_files), so you can directly train the model now.
 
